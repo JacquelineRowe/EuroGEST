@@ -4,7 +4,7 @@ This is a repository for the EuroGEST dataset used to measure gender-stereotypic
 
 - Paper: arxiv link
   
-(The original GEST dataset, which this work builds on, is available on [GitHub](https://github.com/kinit-sk/gest/tree/main) and described in this [paper](https://arxiv.org/abs/2311.18711).)
+- The original GEST dataset, which this work builds on, is from [Women Are Beautiful, Men Are Leaders: Gender Stereotypes in Machine Translation and Language Modeling](https://arxiv.org/abs/2311.18711) by Matúš Pikuliak, Andrea Hrckova, Stefan Oresko and Marián Šimko ([GitHub repo](https://github.com/kinit-sk/gest/tree/main?tab=readme-ov-file)). 
 
 ## Changelog
 
