@@ -11,4 +11,8 @@ This is a repository for the EuroGEST dataset used to measure gender-stereotypic
 
 
 ## Data
+Code to be released 
 
+
+## Model evaluation
+Code to be released 
