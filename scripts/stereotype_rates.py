@@ -8,16 +8,7 @@ Created on Fri Mar 28 15:06:26 2025
 
 
 import pandas as pd
-import os
-import random
-import re
-import string
-import sys
 import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-from matplotlib.patches import Patch
 
 
 # folder where the results csvs are stored 
