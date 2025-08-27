@@ -1,0 +1,7 @@
+fire
+GitPython
+numpy
+pandas
+tqdm
+torch
+transformers
