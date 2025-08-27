@@ -19,9 +19,6 @@ mkdir -p $HF_HOME
 cd "$PLG_GROUPS_STORAGE/plggmultilingualnlp/genderbias"
 source venv/bin/activate
 
-HUGGINGFACE_HUB_TOKEN=os.getenv("HF_TOKEN") # set from env 
-GIT_REPO="$PLG_GROUPS_STORAGE/plggmultilingualnlp/EuroGEST" 
-
 # Usage check
 if [[ $# -lt 4 ]]; then
   echo "Usage: $0 <MODEL_ID> <MODEL_LABEL> <EXP_ID> <SAMPLE_SIZE>"
@@ -47,14 +44,8 @@ LANGUAGES_STRING="[${LANGUAGES_STRING%,}]"
 RESULTS_FOLDER=f"results/{$MODEL_LABEL}/{$EXP_ID}"
 
 python3 model_eval.py \
---hf_token="$HUGGINGFACE_HUB_TOKEN" \
 --model_id "$MODEL_ID" \
 --model_label "$MODEL_LABEL" \
---git_repo_path="$GIT_REPO" \
 --sample_size="$SAMPLE_SIZE" \
 --languages="$LANGUAGES_STRING" \
 --results_folder="$RESULTS_FOLDER"
-
-
-
-
