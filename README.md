@@ -9,7 +9,9 @@ This repository includes:
 2. A csv containing the prompt scaffolds we use for testing gender-neutral sentences in each language in the dataset 
 3. A csv file documenting the numbers of sample sentences available per language per stereotype.  
   
-- The original GEST dataset, which this work builds on, is from [Women Are Beautiful, Men Are Leaders: Gender Stereotypes in Machine Translation and Language Modeling](https://arxiv.org/abs/2311.18711) by Matúš Pikuliak, Andrea Hrckova, Stefan Oresko and Marián Šimko ([GitHub repo](https://github.com/kinit-sk/gest/tree/main?tab=readme-ov-file)). 
+
+# GEST Dataset
+The original GEST dataset, which this work builds on, is from [Women Are Beautiful, Men Are Leaders: Gender Stereotypes in Machine Translation and Language Modeling](https://arxiv.org/abs/2311.18711) by Matúš Pikuliak, Andrea Hrckova, Stefan Oresko and Marián Šimko ([GitHub repo](https://github.com/kinit-sk/gest/tree/main?tab=readme-ov-file)). 
 
 
 ## Dataset creation 
