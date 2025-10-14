@@ -1,6 +1,6 @@
 # EuroGEST Dataset
 
-This is the GitHub repository for the paper [EuroGEST: Investigating gender stereotypes in multilingual language models. ](https://arxiv.org/abs/2506.03867). 
+This is the GitHub repository for the paper [EuroGEST: Investigating gender stereotypes in multilingual language models](https://arxiv.org/abs/2506.03867). 
 
 Our dataset and dataset card is now hosted on [HuggingFace](https://huggingface.co/datasets/utter-project/EuroGEST).
 
