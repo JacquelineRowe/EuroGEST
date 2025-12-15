@@ -8,7 +8,7 @@ This repository includes:
 3. A csv file documenting the numbers of sample sentences available per language per stereotype.  
 
 *Jacqueline Rowe, Mateusz Klimaszewski, Liane Guillou, Shannon Vallor, and Alexandra Birch. 2025. EuroGEST: Investigating gender stereotypes in multilingual language models. In _Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing_, pages 32062–32084, Suzhou, China. Association for Computational Linguistics.
-.
+
 ## Dataset creation 
 Code for translation of GEST dataset to be released shortly.
 
