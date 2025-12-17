@@ -35,4 +35,5 @@ To Test: Set SAMPLE_SIZE=5 in the .sh script.
 To Run Full Pipeline: Set SAMPLE_SIZE=1.
 
 ```bash
-./translate_dataset.sh```
+./translate_dataset.sh
+```
