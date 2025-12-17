@@ -2,12 +2,13 @@
 
 This repository contains the pipeline for translating English source sentences (e.g., from GEST) into 29 European languages using the Google Cloud Translation API and detecting gender marking in the target languages. 
 
-**Pipeline overview: **
+**Pipeline overview**
 1. translation_script.py: Translates sentences. For gender-neutral languages, it translates directly. For gendered languages, it uses "forced-gender" wrappers ("The man said...") to elicit masculine and feminine forms.
 2. qe_filtering.py: Uses a machine translation quality estimation model to remove translations that fall below a quality threshold.
 3. heuristic_filtering.py: Analyzes masculine/feminine pairs to categorize them as identical = Neutral, minimally different = Gendered Minimal Pairs, or Unknown. Minimally different can be defined with a set number of possible different words and letters. 
 
 The original gest data is included in a .csv file for tranlsation. The outputs from the pipeline save in a 'translations' folder ('raw_translations', 'filtered_translations', and 'final_translations'). 
+
 **Setup Instructions**
 
 1. Setup Environment
