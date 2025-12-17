@@ -2,7 +2,7 @@
 
 This sub-directory contains the scripts and configurations required to evaluate autoregressive LLMs using the EuroGEST dataset downloaded from Hugging Face. The evaluation is designed to be highly configurable via the shell script.
 
-These scripts measure the log-likelihood of the masculine and feminine versions of each sentence available in each EuroGEST-supported language. Each sentence relates to a stereotype about men and women. For grammatically gender-neutral sentences, to measure gendered stereotyping we wrap the sentence in a masculine or a feminine template (both pronouns, e.g. he/she said X, and nouns, e.g. the man/woman said X, are measured. You could add your own if you want to extend this further). 
+These scripts measure the log-likelihood of the masculine and feminine versions of each sentence available in each EuroGEST-supported language. Each sentence relates to a stereotype about men and women. For grammatically gender-neutral sentences, to measure gendered stereotyping we wrap the sentence in a masculine or a feminine template (both pronouns, e.g. he/she said X, and nouns, e.g. the man/woman said X, are measured. These are stored in the prompt_scaffolds.json file for each language.
 
 The results are saved into .csv files per language, which include the log likelihoods and relative probability of the masculine version of each sentence. These results can be processed using the scripts in the 'visualise results' subfolder of the main github repository. 
 
