@@ -14,7 +14,7 @@ This repository includes:
      - heatmaps of stereotype rankings or intensities, both per language and over all languages
      - visualisation of overall g_s scores, which measures the model prefers stereotypical sentence genders over antistereotypical ones.
 
-In each folder, we include a read.me with details about how to setup and run the code. 
+In each folder, we include a README.md with details about how to setup and run the code. 
 
 *Jacqueline Rowe, Mateusz Klimaszewski, Liane Guillou, Shannon Vallor, and Alexandra Birch. 2025. EuroGEST: Investigating gender stereotypes in multilingual language models. In _Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing_, pages 32062–32084, Suzhou, China. Association for Computational Linguistics.
 
