@@ -73,7 +73,7 @@ def extract_quoted_sentence(text):
                             if quoted_sentence == None:
                                 quoted_sentence = re.search(",([^']+)", text)
                                 if quoted_sentence == None:
-                                    print("Error in extracting quoted sentence")
+                                    print("Error in extracting quoted sentence (missing opening or closing quote marks)")
                                     print(text) 
                                     quoted_sentence = [f'"ERROR": {text}']
     if quoted_sentence == None:
@@ -194,7 +194,8 @@ gest_df = pd.read_csv(GEST_DIR)
 # initialise dfs to store key stats about each language's final data
 stats_to_collect = ["Neutral",
                     "Gendered",
-                    "Unknown",
+                    "Discarded during heuristic filtering",
+                    "Discarded during QE filtering",
                     f"Coverage",
                     "Number samples per stereotype"]
 
@@ -217,15 +218,22 @@ for language in list(ALL_LANGS.keys()):
 
     filtered_data_path = DATA_DIR / f"{language.lower().replace(' ', '_')}_filtered.csv"
 
-    if os.path.exists(filtered_data_path):
-        filtered_data = pd.read_csv(filtered_data_path, index_col=0)
-    else:
-        print(f"File {filtered_data_path} does not exist. Skipping language {language}.")
-        continue    
-
     if language in NEUTRAL_LANGS:
+
+        if os.path.exists(filtered_data_path):
+            filtered_data = pd.read_csv(filtered_data_path, index_col=0)
+            # check how many were discarded during QE filtering and store for results overview 
+            filtered_data_clean = filtered_data.dropna(subset=["translation"], 
+                how='any' 
+            )
+            num_discarded_qe_filtering = len(gest_df) - len(filtered_data_clean)
+            stats_df.at[language, "Discarded during QE filtering"] = num_discarded_qe_filtering
+            print(num_discarded_qe_filtering)
+        else:
+            print(f"File {filtered_data_path} does not exist. Skipping language {language}.")
+            continue    
         # no filtering needed, just use QE data
-        for index, gest_row in filtered_data.iterrows():
+        for index, gest_row in filtered_data_clean.iterrows():
             language_data.at[index, "neutral translation"] = gest_row["translation"]
             num_neutral_sentences = count_non_null_rows(language_data, "neutral translation")
 
@@ -233,7 +241,7 @@ for language in list(ALL_LANGS.keys()):
 
         stats_df.at[language, "Neutral"] = num_neutral_sentences
         stats_df.at[language, "Gendered"] = 0
-        stats_df.at[language, "Unknown"] = 0
+        stats_df.at[language, "Discarded during heuristic filtering"] = 0
         stats_df.at[language, "Coverage"] = f"{(num_neutral_sentences/len(language_data))*100:.2f}"
         stats_df.at[language, "Number samples per stereotype"] = str(num_samples_per_stereotype)
 
@@ -241,13 +249,26 @@ for language in list(ALL_LANGS.keys()):
         
     elif language in GENDERED_LANGS:
 
+        if os.path.exists(filtered_data_path):
+            filtered_data = pd.read_csv(filtered_data_path, index_col=0)
+            # check how many were discarded during QE filtering and store for results overview 
+            filtered_data_clean = filtered_data.dropna(subset=["the man said", "the woman said"], 
+                how='any' 
+            )
+            num_discarded_qe_filtering = len(gest_df) - len(filtered_data_clean)
+            stats_df.at[language, "Discarded during QE filtering"] = num_discarded_qe_filtering
+            print(num_discarded_qe_filtering)
+        else:
+            print(f"File {filtered_data_path} does not exist. Skipping language {language}.")
+            continue    
+
         # iniitalise dataframe to store unknown sentences that are not identical but don't meet heuristics 
         unknown_data = pd.DataFrame(columns=["GEST sentence", "masculine translation", "feminine translation", "original_stereotype"])
         unknown_data["GEST sentence"] = gest_df["sentence"]
         unknown_data["original_stereotype"] = gest_df["stereotype"]
 
         # now sort the sentences from the gendered languages into gender sensitive and gender neutral 
-        for index, gest_row in filtered_data.iterrows():
+        for index, gest_row in filtered_data_clean.iterrows():
             masculine_translation = filtered_data.loc[index, "the man said"]
             feminine_translation = filtered_data.loc[index, "the woman said"]
 
@@ -280,8 +301,8 @@ for language in list(ALL_LANGS.keys()):
                 language_data.at[index, "gendered word feminine"] = fem_words
 
             # save unknown language data to file
-            os.makedirs(OUT_DIR / "unknown", exist_ok=True)
-            unknown_data.to_csv(OUT_DIR / "unknown" / f"{language.lower().replace(' ', '_')}.csv")
+            os.makedirs(OUT_DIR / "discarded", exist_ok=True)
+            unknown_data.to_csv(OUT_DIR / "discarded" / f"{language.lower().replace(' ', '_')}.csv")
 
             num_gendered_sentences = count_non_null_rows(language_data, "masculine translation")
             num_neutral_sentences = count_non_null_rows(language_data, "neutral translation")
@@ -292,12 +313,12 @@ for language in list(ALL_LANGS.keys()):
 
         stats_df.at[language, "Neutral"] = num_neutral_sentences
         stats_df.at[language, "Gendered"] = num_gendered_sentences
-        stats_df.at[language, "Unknown"] = num_unknown_sentences
-        stats_df.at[language, "Coverage"] = f"{(num_neutral_sentences/len(language_data))*100:.2f}"
+        stats_df.at[language, "Discarded during heuristic filtering"] = num_unknown_sentences
+        stats_df.at[language, "Coverage"] = f"{(num_all_sentences/len(language_data))*100:.2f}"
         stats_df.at[language, "Number samples per stereotype"] = str(num_samples_per_stereotype)
 
     # save final language data to file
     language_data.to_csv(OUT_DIR / f"{language.lower().replace(' ', '_')}_final.csv")
-
-stats_df.to_csv(OUT_DIR / f"stats_{NUM_DIFFERENT_LETTERS}_letters_{NUM_GENDERED_WORDS}_words.csv")
+    
+stats_df.sort_index().to_csv(OUT_DIR / f"stats_{NUM_DIFFERENT_LETTERS}_letters_{NUM_GENDERED_WORDS}_words.csv")
 
