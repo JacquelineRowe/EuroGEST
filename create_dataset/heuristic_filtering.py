@@ -6,27 +6,10 @@ import re
 from pathlib import Path
 import os
 import numpy as np
+import fire
 
 # ============================================================= #
-# ================== PATH HANDLING ============================ #
-# ============================================================= #
-
-# load data
-GEST_DIR = Path(os.environ.get("DATA_DIR"))
-DATA_DIR = Path(os.environ.get("FILTERED_TRANSLATIONS_DIR", "./filtered_translations"))
-print("loading filtered data from:", DATA_DIR)
-
-# where to save your final data 
-OUT_DIR = Path(os.environ.get("FINAL_DATA_DIR", "./final_data"))
-OUT_DIR.mkdir(parents=True, exist_ok=True)
-print("saving data to:", OUT_DIR)
-
-NUM_GENDERED_WORDS = int(os.environ.get("NUM_GENDERED_WORDS", 1))
-NUM_DIFFERENT_LETTERS = int(os.environ.get("NUM_DIFFERENT_LETTERS", 2))
-
-
-# ============================================================= #
-# ================== CONFIGURATION ============================ #
+# ================== CONFIGURATION ============================= #
 # ============================================================= #
 
 GENDERED_LANGS = {
@@ -44,11 +27,9 @@ NEUTRAL_LANGS = {
 }
 
 ALL_LANGS = {**GENDERED_LANGS, **NEUTRAL_LANGS}
-STEREOTYPES = range(1, 17) 
+STEREOTYPES = range(1, 17)
 
-# ============================================================== #
-# ========= UTILITY FUNCTIONS=================================== #
-# ============================================================== #
+# ===================== UTILITY FUNCTIONS ===================== #
 
 def extract_quoted_sentence(text):
     ''' function to extract the stereotype sentence from quotation marks in the
@@ -90,7 +71,7 @@ def extract_quoted_sentence(text):
         return quoted_sentence
 
 
-def compare_translations(masculine_translation, feminine_translation):
+def compare_translations(masculine_translation, feminine_translation, num_gendered_words, num_different_letters):
     gendered_words = []
     if pd.isna(masculine_translation) or pd.isna(feminine_translation):   
         return "Unknown", None
@@ -121,7 +102,7 @@ def compare_translations(masculine_translation, feminine_translation):
                         if masculine_word != feminine_word:
                             count_different_words += 1
                             different_word_indexes.append(word_index)
-                    if count_different_words > NUM_GENDERED_WORDS:
+                    if count_different_words > num_gendered_words:
                         return "Unknown", None
                     else:
                         if len(different_word_indexes) == 0:
@@ -136,7 +117,7 @@ def compare_translations(masculine_translation, feminine_translation):
                                 fem_length = len(feminine_word)
                                 longest_word_length = min(masc_length, fem_length)
                                 num_different_letters_length = np.abs(masc_length-fem_length)
-                                max_different_letters = NUM_DIFFERENT_LETTERS - num_different_letters_length
+                                max_different_letters = num_different_letters - num_different_letters_length
                                 
                                 count_different_letters = 0
                                 for letter_index in range(0, longest_word_length):
@@ -152,7 +133,6 @@ def compare_translations(masculine_translation, feminine_translation):
                 return "Gendered", gendered_words
             
 
-
 def count_non_null_rows(df, column):
     total = 0
     sentences = df[column]
@@ -160,6 +140,7 @@ def count_non_null_rows(df, column):
         if not pd.isna(row):
             total += 1
     return total
+
 
 def count_stereotype_samples(language_data: pd.DataFrame, stereotypes: list) -> dict:
     """
@@ -169,8 +150,8 @@ def count_stereotype_samples(language_data: pd.DataFrame, stereotypes: list) -> 
     """
 
     translation_cols = [
-        "neutral translation", 
-        "masculine translation"
+        "Neutral translation", 
+        "Masculine translation"
     ]
 
     all_missing_mask = language_data[translation_cols].isna().all(axis=1)
@@ -186,139 +167,119 @@ def count_stereotype_samples(language_data: pd.DataFrame, stereotypes: list) -> 
     return num_samples_per_stereotype
 
 
-# ============================================================== #
-# =============== MAIN LOOP ==================================== #
-# ============================================================== #
-gest_df = pd.read_csv(GEST_DIR)
 
-# initialise dfs to store key stats about each language's final data
-stats_to_collect = ["Neutral",
-                    "Gendered",
-                    "Discarded during heuristic filtering",
-                    "Discarded during QE filtering",
-                    f"Coverage",
-                    "Number samples per stereotype"]
+# ===================== MAIN FUNCTION ===================== #
 
-stats_df = pd.DataFrame(index=ALL_LANGS.keys(), columns=stats_to_collect)
+def main(
+    languages,
+    gest_path,
+    input_dir,
+    out_dir,
+    num_gendered_words,
+    num_different_letters,
+):
+    """
+    Apply heuristic filtering to separate neutral, gendered, and invalid translations.
+    """
+    gest_df = pd.read_csv(gest_path)
 
-for language in list(ALL_LANGS.keys()):
+    in_path = Path(input_dir)
+    out_path = Path(out_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+    (out_path / "discarded").mkdir(parents=True, exist_ok=True)
 
-    language_data = pd.DataFrame(columns=["GEST sentence", 
-                                 "neutral translation", 
-                                 "masculine translation", 
-                                 "feminine translation", 
-                                 "gendered word masculine",
-                                 "gendered word feminine",
-                                 "original_stereotype"])
+    # 4. Handle Language Selection
+    if languages:
+        if isinstance(languages, str):
+            languages = [l.strip() for l in languages.split(',')]
+        target_langs = {l: ALL_LANGS[l] for l in languages if l in ALL_LANGS}
+    else:
+        target_langs = ALL_LANGS
     
-    language_data["GEST sentence"] = gest_df["sentence"]
-    language_data["original_stereotype"] = gest_df["stereotype"]
+    stats_cols = ["Neutral",
+                "Gendered",
+                "Discarded Heuristic",
+                "Discarded QE",
+                "Coverage",
+                "Number samples per stereotype"]
+    stats_df = pd.DataFrame(index=target_langs, columns=stats_cols)
 
-    print(f"Processing language {language}")
-
-    filtered_data_path = DATA_DIR / f"{language.lower().replace(' ', '_')}_filtered.csv"
-
-    if language in NEUTRAL_LANGS:
-
-        if os.path.exists(filtered_data_path):
-            filtered_data = pd.read_csv(filtered_data_path, index_col=0)
-            # check how many were discarded during QE filtering and store for results overview 
-            filtered_data_clean = filtered_data.dropna(subset=["translation"], 
-                how='any' 
-            )
-            num_discarded_qe_filtering = len(gest_df) - len(filtered_data_clean)
-            stats_df.at[language, "Discarded during QE filtering"] = num_discarded_qe_filtering
-            print(num_discarded_qe_filtering)
-        else:
-            print(f"File {filtered_data_path} does not exist. Skipping language {language}.")
-            continue    
-        # no filtering needed, just use QE data
-        for index, gest_row in filtered_data_clean.iterrows():
-            language_data.at[index, "neutral translation"] = gest_row["translation"]
-            num_neutral_sentences = count_non_null_rows(language_data, "neutral translation")
-
-        num_samples_per_stereotype = count_stereotype_samples(language_data, STEREOTYPES)
-
-        stats_df.at[language, "Neutral"] = num_neutral_sentences
-        stats_df.at[language, "Gendered"] = 0
-        stats_df.at[language, "Discarded during heuristic filtering"] = 0
-        stats_df.at[language, "Coverage"] = f"{(num_neutral_sentences/len(language_data))*100:.2f}"
-        stats_df.at[language, "Number samples per stereotype"] = str(num_samples_per_stereotype)
-
-        language_data = language_data.drop(columns=["masculine translation", "feminine translation"])
+    for lang in target_langs:
+        print(f"--- Finalizing {lang} ---")
+        filtered_file = in_path / f"{lang.lower().replace(' ', '_')}_filtered.csv"
         
-    elif language in GENDERED_LANGS:
+        if not filtered_file.exists():
+            print(f"Skipping {lang}: Filtered file not found.")
+            continue
 
-        if os.path.exists(filtered_data_path):
-            filtered_data = pd.read_csv(filtered_data_path, index_col=0)
-            # check how many were discarded during QE filtering and store for results overview 
-            filtered_data_clean = filtered_data.dropna(subset=["the man said", "the woman said"], 
-                how='any' 
-            )
-            num_discarded_qe_filtering = len(gest_df) - len(filtered_data_clean)
-            stats_df.at[language, "Discarded during QE filtering"] = num_discarded_qe_filtering
-            print(num_discarded_qe_filtering)
-        else:
-            print(f"File {filtered_data_path} does not exist. Skipping language {language}.")
-            continue    
-
-        # iniitalise dataframe to store unknown sentences that are not identical but don't meet heuristics 
-        unknown_data = pd.DataFrame(columns=["GEST sentence", "masculine translation", "feminine translation", "original_stereotype"])
-        unknown_data["GEST sentence"] = gest_df["sentence"]
-        unknown_data["original_stereotype"] = gest_df["stereotype"]
-
-        # now sort the sentences from the gendered languages into gender sensitive and gender neutral 
-        for index, gest_row in filtered_data_clean.iterrows():
-            masculine_translation = filtered_data.loc[index, "the man said"]
-            feminine_translation = filtered_data.loc[index, "the woman said"]
-
-            # extract quoted sentences if they've met the QE filter 
-            if pd.isna(masculine_translation):
-                masculine_sentence = None
-            else:
-                masculine_sentence = extract_quoted_sentence(masculine_translation)
-            if pd.isna(feminine_translation):
-                feminine_sentence = None
-            else:
-                feminine_sentence = extract_quoted_sentence(feminine_translation)
-
-            ## compare two sentences and sort into neutral, gendered, and unknown
-            result, words = compare_translations(masculine_sentence, feminine_sentence)
-            if result == "Neutral":
-                language_data.at[index, "neutral translation"] = masculine_sentence
-            elif result == "Unknown":
-                unknown_data.at[index, "masculine translation"] = masculine_sentence
-                unknown_data.at[index, "feminine translation"] = feminine_sentence
-            elif result == "Gendered":
-                language_data.at[index, "masculine translation"] = masculine_sentence
-                language_data.at[index, "feminine translation"] = feminine_sentence
-                masc_words = []
-                fem_words = []
-                for gendered_word_pair in words:
-                    masc_words.append(gendered_word_pair[0])
-                    fem_words.append(gendered_word_pair[1])
-                language_data.at[index, "gendered word masculine"] = masc_words
-                language_data.at[index, "gendered word feminine"] = fem_words
-
-            # save unknown language data to file
-            os.makedirs(OUT_DIR / "discarded", exist_ok=True)
-            unknown_data.to_csv(OUT_DIR / "discarded" / f"{language.lower().replace(' ', '_')}.csv")
-
-            num_gendered_sentences = count_non_null_rows(language_data, "masculine translation")
-            num_neutral_sentences = count_non_null_rows(language_data, "neutral translation")
-            num_all_sentences = num_gendered_sentences + num_neutral_sentences
-            num_unknown_sentences = count_non_null_rows(unknown_data, "masculine translation")
+        filtered_df = pd.read_csv(filtered_file, index_col=0)
         
-        num_samples_per_stereotype = count_stereotype_samples(language_data, STEREOTYPES)
+        # Result structures
+        lang_data = pd.DataFrame(columns=["GEST sentence", 
+                                 "Neutral translation", 
+                                 "Masculine translation", 
+                                 "Feminine translation", 
+                                 "Gendered word masculine",
+                                 "Gendered word feminine",
+                                 "Original_stereotype"])
+        lang_data["GEST sentence"] = gest_df["sentence"]
+        lang_data["original_stereotype"] = gest_df["stereotype"]
 
-        stats_df.at[language, "Neutral"] = num_neutral_sentences
-        stats_df.at[language, "Gendered"] = num_gendered_sentences
-        stats_df.at[language, "Discarded during heuristic filtering"] = num_unknown_sentences
-        stats_df.at[language, "Coverage"] = f"{(num_all_sentences/len(language_data))*100:.2f}"
-        stats_df.at[language, "Number samples per stereotype"] = str(num_samples_per_stereotype)
+        if lang in NEUTRAL_LANGS:
+            clean_df = filtered_df.dropna(subset=["translation"], how="any")
+            stats_df.at[lang, "Discarded QE"] = len(gest_df) - len(clean_df)
+            
+            for idx, row in clean_df.iterrows():
+                lang_data.at[idx, "Neutral translation"] = row["translation"]
 
-    # save final language data to file
-    language_data.to_csv(OUT_DIR / f"{language.lower().replace(' ', '_')}_final.csv")
-    
-stats_df.sort_index().to_csv(OUT_DIR / f"stats_{NUM_DIFFERENT_LETTERS}_letters_{NUM_GENDERED_WORDS}_words.csv")
+        else: # Gendered Langs
+            clean_df = filtered_df.dropna(subset=["the man said", "the woman said"], how='any')
+            stats_df.at[lang, "Discarded QE"] = len(gest_df) - len(clean_df)
 
+            unknown_data = pd.DataFrame(columns=["GEST sentence", "masculine translation", "feminine translation", "original_stereotype"])
+            unknown_data["GEST sentence"] = gest_df["sentence"]
+            unknown_data["original_stereotype"] = gest_df["stereotype"]
+
+            for idx, row in clean_df.iterrows():
+                m_sent = extract_quoted_sentence(row["the man said"])
+                f_sent = extract_quoted_sentence(row["the woman said"])
+                
+                res, words = compare_translations(m_sent, f_sent, num_gendered_words, num_different_letters)
+                
+                if res == "Neutral":
+                    lang_data.at[idx, "Neutral translation"] = m_sent
+                elif res == "Gendered":
+                    lang_data.at[idx, "Masculine translation"] = m_sent
+                    lang_data.at[idx, "Feminine translation"] = f_sent
+                    lang_data.at[idx, "Gendered word masculine"] = [w[0] for w in words]
+                    lang_data.at[idx, "Gendered word feminine"] = [w[1] for w in words]
+                else: # Unknown
+                    unknown_data.at[idx, "Masculine translation"] = m_sent
+                    unknown_data.at[idx, "Feminine translation"] = f_sent
+                
+                # Save and count Unknowns
+                u_count = unknown_data.get("Masculine translation", pd.Series(dtype=float)).count()
+                unknown_data.to_csv(out_path / "discarded" / f"{lang.lower()}_discarded.csv")
+                # unknown_data.dropna(subset=["Masculine translation"]).to_csv(out_path / "discarded" / f"{lang.lower()}_discarded.csv")
+        
+        n_count = lang_data["Neutral translation"].count()
+        g_count = lang_data.get("Masculine translation", pd.Series()).count()
+
+        num_samples_per_stereotype = count_stereotype_samples(lang_data, STEREOTYPES)
+        n = n_count if n_count is not None else 0
+        g = g_count if g_count is not None else 0
+        u = u_count if u_count is not None else 0
+
+        stats_df.at[lang, "Neutral"], stats_df.at[lang, "Gendered"] = n, g
+        stats_df.at[lang, "Discarded Heuristic"] = u
+        stats_df.at[lang, "Coverage"] = ((n + g) / len(gest_df)) * 100
+        stats_df.at[lang, "Number samples per stereotype"] = str(num_samples_per_stereotype)
+
+        # Save Final CSV
+        lang_data.to_csv(out_path / f"{lang.lower().replace(' ', '_')}_final.csv")
+
+    stats_df.to_csv(out_path / f"stats_summary.csv")
+    print(f"Heuristic filtering complete. Results in: {out_dir}")
+
+if __name__ == "__main__":
+    fire.Fire(main)

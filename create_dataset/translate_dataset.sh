@@ -4,46 +4,71 @@
 
 source venv/bin/activate
 
+## Paths
+DATA_CSV="./gest_1.1.csv"
+RAW_DIR="../translations/raw_translations"
+FILTERED_DIR="../translations/filtered_translations"
+FINAL_DIR="../translations/final_translations"
+
+JSON_KEY="/path/to/you/json/key.json"
+PROJECT_ID="your_project_id"
+
+SAMPLE_SIZE=5 # Use 1 for full dataset, >1 for testing (££ safety)
+LANGUAGES="all" # Use "all" for full languages, or specify a language e.g., "French"
+
+THRESHOLD="0.85" # set your threshold for filtering out low-quality translations
+QE_MODEL="Unbabel/wmt22-cometkiwi-da" # other QE models can be used
+
+NUM_GENDERED_WORDS="1" # language heuristics for filtering gendered minimal pairs 
+NUM_DIFFERENT_LETTERS="2"
+
+# --- 5. Language Configuration ---
+if [[ "$LANGUAGE" == "all" ]]; then
+    LANGUAGES=(
+        "English" "Bulgarian" "Danish" "Dutch" "Estonian" 
+        "Finnish" "French" "German" "Greek" "Hungarian" "Irish" 
+        "Italian" "Latvian" "Lithuanian" "Maltese" "Portuguese" "Romanian" 
+        "Spanish" "Swedish" "Catalan" "Galician" "Norwegian" "Turkish" "Croatian" 
+        "Czech" "Polish" "Slovak" "Slovenian" "Russian" "Ukrainian"
+    )
+    echo "Evaluating for all languages."
+else
+    echo "Evaluating for language: ${LANGUAGE}"
+    LANGUAGES=("${LANGUAGE}")
+fi
+
 # ========================================= #
-# ======== TRANSLATE WITH GOOGLE API======= #
+# ==== Step 1: TRANSLATE WITH GOOGLE API=== #
 # ========================================= #
 
-# where the dataset for translation is saved 
-export DATA_DIR="./gest_1.1.csv"
-
-# Where to save the raw translations
-export RAW_TRANSLATIONS_DIR="../raw_translations"
-
-# Google API key JSON and project name
-export JSON_KEY="./path_to_your_key"
-export PROJECT_ID="your_project_key"
-
-# Sample size: 1 = full dataset, other n = test n sentences (££)
-export SAMPLE_SIZE=5
-
-python translation_script.py
+# python translation_script.py \
+#     --data_path "$DATA_CSV" \
+#     --json_key "$JSON_KEY" \
+#     --project_id "$PROJECT_ID" \
+#     --out_dir "$RAW_DIR" \
+#     --sample_size $SAMPLE_SIZE \
+#     --languages "${LANGUAGES[@]}"
 
 # ========================================= #
-# ======== FILTER WITH COMET QE =========== #
+# =====Step 2: FILTER WITH COMET QE ======= #
 # ========================================= #
 
-# where to save the quality-filtered translations
-
-export FILTERED_TRANSLATIONS_DIR="../filtered_translations"
-export THRESHOLD="0.85" # set your threshold for filtering out low-quality translations
-export QE_MODEL="Unbabel/wmt22-cometkiwi-da" # other QE models can be used
-
-python qe_filtering.py
+# python qe_filtering.py \
+#     --languages "${LANGUAGES[@]}" \
+#     --threshold $THRESHOLD \
+#     --batch_size 16 \
+#     --qe_model_name "$QE_MODEL" \
+#     --data_dir "$RAW_DIR" \
+#     --out_dir "$FILTERED_DIR" \
 
 # ========================================= #
-# ======== CREATE FINAL DATASET =========== #
+# =====Step 3: CREATE FINAL DATASET ======= #
 # ========================================= #
 
-# where to save the quality-filtered translations
-export FINAL_DATA_DIR="../final_translations"
-
-# set heuristic filtering parameters for detecting gendered minimal pairs (e.g. 2 letters on 1 word)
-export NUM_GENDERED_WORDS="1"
-export NUM_DIFFERENT_LETTERS="2"
-
-python heuristic_filtering.py
+python heuristic_filtering.py \
+    --languages "${LANGUAGES[@]}" \
+    --num_gendered_words $NUM_GENDERED_WORDS \
+    --num_different_letters $NUM_DIFFERENT_LETTERS \
+    --input_dir "$FILTERED_DIR" \
+    --out_dir "$FINAL_DIR" \
+    --gest_path "$DATA_CSV"

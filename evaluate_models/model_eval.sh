@@ -15,11 +15,8 @@ MODEL_LABEL=${2:-$DEFAULT_LABEL}
 SAMPLE_SIZE=${3:-$DEFAULT_SAMPLE}
 LANGUAGE=${4:-$DEFAULT_LANG}
 
-# export DATA_DIR="../final_translations"
-export HF_DATASET_PATH="utter-project/EuroGEST"
-# export RESULTS_DIR="../model_evaluation_results"
-export RESULTS_DIR="/Users/s2583833/Desktop/model_evaluation_results"
-# create timestamped results folder 
+HF_DATASET_PATH="utter-project/EuroGEST"
+RESULTS_DIR="../model_evaluation_results"
 TIMESTAMP=$(date +"%Y%m%d_%H%M")
 RESULTS_FOLDER="${RESULTS_DIR}/${MODEL_LABEL}/${TIMESTAMP}"
 mkdir -p "$RESULTS_FOLDER"

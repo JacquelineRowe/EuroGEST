@@ -1,33 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
 from pathlib import Path
 from google.cloud import translate
 import pandas as pd
 import random
-import numpy as np
-
-# ============================================================= #
-# ================== PATH HANDLING ============================= #
-# ============================================================= #
-
-# load dataset for translation 
-DATA_DIR = Path(os.environ.get("DATA_DIR"))
-print("loading data from:", DATA_DIR)
-
-# where to save your translated data 
-OUT_DIR = Path(os.environ.get("RAW_TRANSLATIONS_DIR", "./raw_translations"))
-OUT_DIR.mkdir(parents=True, exist_ok=True)
-print("saving data to:", OUT_DIR)
+import fire
 
 # ============================================================= #
 # ================== CONFIGURATION ============================= #
 # ============================================================= #
-
-JSON_KEY = os.environ.get("JSON_KEY")
-PROJECT_ID = os.environ.get("PROJECT_ID")
-SAMPLE_SIZE = int(os.environ.get("SAMPLE_SIZE", 1)) 
 
 GENDERED_LANGS = {
     'Bulgarian': 'bg', 'French': 'fr', 'German': 'de', 'Greek': 'el',
@@ -44,84 +26,110 @@ NEUTRAL_LANGS = {
 }
 
 ALL_LANGS = {**GENDERED_LANGS, **NEUTRAL_LANGS}
-STEREOTYPES = range(1, 17) 
 
-gest_df = pd.read_csv(DATA_DIR)
+# ===================== MAIN FUNCTION ===================== #
 
-if SAMPLE_SIZE != 1:
-    # if testing with a few examples 
-    TEST_GENDERED_LANG = random.choice(list(GENDERED_LANGS.keys()))
-    TEST_NEUTRAL_LANG = random.choice(list(NEUTRAL_LANGS.keys()))
-    test_langs = [TEST_GENDERED_LANG, TEST_NEUTRAL_LANG]
-    sampled_df = gest_df.sample(n=SAMPLE_SIZE)
-else:
-    # Full run
-    test_langs = list(ALL_LANGS.keys())
-    sampled_df = gest_df
+def main(
+    data_path,
+    json_key,
+    project_id,
+    out_dir,
+    sample_size,
+    languages
+):
+    """
+    Translate English GEST sentences into multiple European languages.
 
-print("Testing languages: ", test_langs)
-print("Number of sentences to translate: ", len(sampled_df))
-print("Sample from dataset: ")
-print(gest_df.head(2))
+    :param data_path: Path to the source GEST CSV file.
+    :param json_key: Path to your Google Cloud Service Account JSON key.
+    :param project_id: Your Google Cloud Project ID.
+    :param out_dir: Folder where translations will be saved.
+    :param sample_size: If 1 (default), runs full dataset. If > 1, picks a random sample.
+    :param languages: Optional comma-separated list of languages to process.
+    """
+    
+    # 1. Setup Paths
+    data_file = Path(data_path)
+    output_path = Path(out_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    
+    # 2. Load Dataset
+    gest_df = pd.read_csv(data_file)
 
-# ============================================================= #
-# ================== GOOGLE TRANSLATE CLIENT=================== #
-# ============================================================= #
-
-client = translate.TranslationServiceClient.from_service_account_json(
-    str(JSON_KEY)
-)
-
-def translate_text(text, target_language_code):
-    location = "global"
-    parent = f"projects/{PROJECT_ID}/locations/{location}"
-
-    response = client.translate_text(
-        request={
-            "parent": parent,
-            "contents": [text],
-            "mime_type": "text/plain",
-            "source_language_code": "en",
-            "target_language_code": target_language_code,
-        }
-    )
-
-    return response.translations[0].translated_text
-
-# ============================================================= #
-# ================== MAIN LOOP ================================= #
-# ============================================================= #
-
-# iterate over the languages
-for language in test_langs:
-    code = ALL_LANGS[language]
-    is_gendered = language in GENDERED_LANGS
-
-    save_path = OUT_DIR / f"{language.lower().replace(' ', '_')}.csv"
-
-    if is_gendered:
-        columns = ["GEST_sentence", "the man said", "the woman said", "original_stereotype"]
+    # 3. Determine Languages and Sample
+    if languages:
+        # If user provides a specific list: "Spanish,French"
+        if isinstance(languages, str):
+            languages = [l.strip() for l in languages.split(',')]
+        test_langs = languages
+        sampled_df = gest_df if sample_size == 1 else gest_df.sample(n=sample_size)
+    elif sample_size != 1:
+        # Original logic: Pick one random gendered and one random neutral for testing
+        test_langs = [
+            random.choice(list(GENDERED_LANGS.keys())),
+            random.choice(list(NEUTRAL_LANGS.keys()))
+        ]
+        sampled_df = gest_df.sample(n=sample_size)
     else:
-        columns = ["GEST_sentence", "translation", "original_stereotype"]
+        # Full run
+        test_langs = list(ALL_LANGS.keys())
+        sampled_df = gest_df
 
-    # We use the index of the sampled dataframe for the output dataframe
-    df_out = pd.DataFrame(index=sampled_df.index, columns=columns)
-    df_out["GEST_sentence"] = sampled_df["sentence"]
-    df_out["original_stereotype"] = sampled_df["stereotype"] # Keep track of the original stereotype
+    print(f"Processing languages: {test_langs}")
+    print(f"Sentences per language: {len(sampled_df)}")
 
-    print(f"Translating {len(sampled_df)} sentences for language: {language}")
+    # 4. Initialize Google Translate Client
+    client = translate.TranslationServiceClient.from_service_account_json(str(json_key))
 
-    # Iterate over the sampled sentences
-    for idx, row in sampled_df.iterrows():
-        sentence = row["sentence"]
+    def translate_text(text, target_code):
+        parent = f"projects/{project_id}/locations/global"
+        response = client.translate_text(
+            request={
+                "parent": parent,
+                "contents": [text],
+                "mime_type": "text/plain",
+                "source_language_code": "en",
+                "target_language_code": target_code,
+            }
+        )
+        return response.translations[0].translated_text
+
+    # 5. Translation Loop
+    for language in test_langs:
+        if language not in ALL_LANGS:
+            print(f"Warning: {language} not in supported list. Skipping.")
+            continue
+            
+        code = ALL_LANGS[language]
+        is_gendered = language in GENDERED_LANGS
+        save_file = output_path / f"{language.lower().replace(' ', '_')}.csv"
+
+        print("save_file", save_file)
+        
 
         if is_gendered:
-            df_out.at[idx, "the man said"] = translate_text(f"The man said, '{sentence}'", code)
-            df_out.at[idx, "the woman said"] = translate_text(f"The woman said, '{sentence}'", code)
+            cols = ["GEST_sentence", "the man said", "the woman said", "original_stereotype"]
         else:
-            df_out.at[idx, "translation"] = translate_text(sentence, code)
+            cols = ["GEST_sentence", "translation", "original_stereotype"]
 
-        # Save after each sentence (££ safety)
-        df_out.to_csv(save_path)
+        df_out = pd.DataFrame(index=sampled_df.index, columns=cols)
+        df_out["GEST_sentence"] = sampled_df["sentence"]
+        df_out["original_stereotype"] = sampled_df["stereotype"]
 
-    print(f"Saved translations for {language}")
+        print(f"Translating for: {language}...")
+
+        for idx, row in sampled_df.iterrows():
+            sentence = row["sentence"]
+            if is_gendered:
+                df_out.at[idx, "the man said"] = translate_text(f"The man said, '{sentence}'", code)
+                df_out.at[idx, "the woman said"] = translate_text(f"The woman said, '{sentence}'", code)
+            else:
+                df_out.at[idx, "translation"] = translate_text(sentence, code)
+            
+            # Save every iteration for safety (££)
+            df_out.to_csv(save_file)
+
+    print("All translations complete.")
+
+if __name__ == "__main__":
+    fire.Fire(main)
