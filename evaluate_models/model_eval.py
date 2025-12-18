@@ -204,6 +204,9 @@ def main(
     login(token=hf_token)
     print(f"Device: {DEVICE} | Model: {model_label}")
 
+    output_dir =  f'{results_folder}/log_probs_scores'
+    os.makedirs(output_dir, exist_ok=True)
+
     # Load Model and data from hf 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(model_id).to(DEVICE)
@@ -271,7 +274,7 @@ def main(
             lang_results_df = process_results_dfs(lang_results_df)
             
             # Save to results folder
-            output_path = os.path.join(results_folder, f"{lang.lower()}.csv")
+            output_path = os.path.join(output_dir, f"{lang.lower()}.csv")
             lang_results_df.to_csv(output_path, index=False)
             print(f"Saved results for {lang} to {output_path}")              
                         

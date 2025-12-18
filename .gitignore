@@ -16,8 +16,9 @@ env/
 ### hf cache ###
 .hf_cache/
 
-model_evaluation/.DS_Store
-model_evaluation/results/.DS_Store
-
 # translations generated with create dataset
 translations/
+
+# results
+model_evaluation_results/
+model_evaluation_graphs/
