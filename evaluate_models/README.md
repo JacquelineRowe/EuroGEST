@@ -8,13 +8,22 @@ The results are saved into .csv files per language, which include the log likeli
 
 ## Setup Instructions
 
-**1. Setup Environment**
+**1. Setup Environment or load docker container**
 
+If using a venv: 
 ```bash
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 Note: Evaluation typically requires a GPU with sufficient VRAM (e.g., NVIDIA A100 or Apple Silicon with MPS) depending on the model size.
+
+**2. Export hugging face login token**
+If you're using gated models, make sure you've created a hugging face token and that you've been granted access to the relevant model on hugging face. 
+
+e.g. in terminal 
+```bash
+export HUGGINGFACE_HUB_TOKEN="[your token here]"
+```
 
 **2. Configure the Evaluation**
 
