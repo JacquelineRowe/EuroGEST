@@ -3,7 +3,7 @@
 import os
 
 # redirect cache if needed for storage 
-os.environ["HF_HOME"] = os.path.join(os.getcwd(), ".hf_cache")
+# os.environ["HF_HOME"] = os.path.join(os.getcwd(), ".hf_cache")
 
 import re
 import string
@@ -28,7 +28,7 @@ SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
-torch.use_deterministic_algorithms(True)
+torch.use_deterministic_algorithms(True, warn_only=True)
 
 if torch.backends.mps.is_available():
     DEVICE = torch.device("mps")  # Use Apple Metal GPU acceleration
@@ -50,11 +50,6 @@ EURO_LLM_LANGS = {
     'Russian': 'ru', 'Ukrainian': 'uk'
 }
 
-with open('punc_map.json', 'r', encoding='utf-8') as f:
-    PUNC_MAP = json.load(f)
-
-with open('prompt_scaffolds.json', 'r', encoding='utf-8') as f:
-    SCAFFOLDS = json.load(f)
 
 #============================================================== #
 # ================== UTILITY FUNCTIONS========================= #
@@ -62,22 +57,22 @@ with open('prompt_scaffolds.json', 'r', encoding='utf-8') as f:
 
 #  function to wrap gest setnences in quotes followed he/she and the man/woman said in that language 
 
-def wrap_sentence(sentence: str, language: str):
+def wrap_sentence(sentence: str, language: str, scaffolds: dict, punc_map: dict):
     """Wraps sentence in quotes and adds language-specific scaffolds."""
     m_pron, f_pron = "he said", "she said"
     m_noun, f_noun = "the man said", "the woman said"
 
     if language != "English":
-        m_pron = SCAFFOLDS[m_pron][language]
-        f_pron = SCAFFOLDS[f_pron][language]
-        m_noun = SCAFFOLDS[m_noun][language]
-        f_noun = SCAFFOLDS[f_noun][language]
+        m_pron = scaffolds[m_pron][language]
+        f_pron = scaffolds[f_pron][language]
+        m_noun = scaffolds[m_noun][language]
+        f_noun = scaffolds[f_noun][language]
 
     # Clean sentence (get rid of any punctuation at the start or end of the gest sentence (e.g. final full-stop)
     sentence = re.sub(r'^[^\w\s]+|[^\w\s]+\Z', '', sentence.strip())
 
     # select correct punctuation marks from dict 
-    punc_start, punc_end = PUNC_MAP[language]
+    punc_start, punc_end = punc_map[language]
     
     # wrap translated gest sentence in punctuation and then create m/f noun/pronoun pairs 
     base = f"{punc_start}{sentence}{punc_end}"
@@ -197,15 +192,22 @@ def main(
     model_label: str, 
     sample_size: int,
     languages: List[str],
+    repo_subdir: str,
     results_folder: str,
     ):
 
     # HF Login
-    login(token=hf_token)
+    login(token=hf_token, add_to_git_credential=False)
     print(f"Device: {DEVICE} | Model: {model_label}")
 
     output_dir =  f'{results_folder}/log_probs_scores'
     os.makedirs(output_dir, exist_ok=True)
+
+    with open(f'{repo_subdir}/punc_map.json', 'r', encoding='utf-8') as f:
+        PUNC_MAP = json.load(f)
+
+    with open(f'{repo_subdir}/prompt_scaffolds.json', 'r', encoding='utf-8') as f:
+        SCAFFOLDS = json.load(f)
 
     # Load Model and data from hf 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
@@ -252,7 +254,7 @@ def main(
                 neutral_sent = row['Neutral']
 
                 # Wrap the neutral translation into 4 variations
-                m_p, m_n, f_p, f_n = wrap_sentence(neutral_sent, lang)
+                m_p, m_n, f_p, f_n = wrap_sentence(neutral_sent, lang, SCAFFOLDS, PUNC_MAP)
                 
                 # Condition P: Pronoun Scaffolds
                 scores_p = score_sentences(m_p, f_p, model, tokenizer)

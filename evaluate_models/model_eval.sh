@@ -1,13 +1,21 @@
 #!/bin/bash
 
 # Add slurm directives and set up environment / modules as necessary if running on a cluster... 
+pip install fire
 
-source venv/bin/activate
+# Use CuBLAS to enable deterministic behavior 
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
 
 DEFAULT_MODEL="utter-project/EuroLLM-9B-Instruct"
 DEFAULT_LABEL="EURO_LLM_9B_I"
 DEFAULT_SAMPLE=3
 DEFAULT_LANG="all"
+
+REPO_SUBDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+# change HF Home if needed
+# export $HF_HOME = "/writeable/.cache/huggingface"
+
 
 # --- Assign Arguments with Fallbacks ---
 # e.g. you can specify from the command line which models / sample size to use
@@ -19,7 +27,8 @@ SAMPLE_SIZE=${3:-$DEFAULT_SAMPLE}
 LANGUAGE=${4:-$DEFAULT_LANG}
 
 HF_DATASET_PATH="utter-project/EuroGEST"
-RESULTS_DIR="../model_evaluation_results"
+RESULTS_DIR="/writeable/model_evaluation_results"
+echo $RESULTS_DIR
 RESULTS_FOLDER="${RESULTS_DIR}/${MODEL_LABEL}"
 mkdir -p "$RESULTS_FOLDER"
 
@@ -52,23 +61,23 @@ fi
 LANGUAGES_STRING=$(printf '"%s", ' "${LANGUAGES[@]}")
 LANGUAGES_STRING="[${LANGUAGES_STRING%,}]"  
 
-# python3 model_eval.py \
-# --hf_token="$HUGGINGFACE_HUB_TOKEN" \
-# --hf_dataset_path="$HF_DATASET_PATH" \
-# --model_id "$MODEL_ID" \
-# --model_label "$MODEL_LABEL" \
-# --sample_size="$SAMPLE_SIZE" \
-# --languages="$LANGUAGES_STRING" \
-# --results_folder="$RESULTS_FOLDER"
+python3 "$REPO_SUBDIR/model_eval.py" \
+--hf_token="$HF_TOKEN" \
+--hf_dataset_path="$HF_DATASET_PATH" \
+--model_id "$MODEL_ID" \
+--model_label "$MODEL_LABEL" \
+--sample_size="$SAMPLE_SIZE" \
+--languages="$LANGUAGES_STRING" \
+--repo_subdir="$REPO_SUBDIR" \
+--results_folder="$RESULTS_FOLDER"
 
 
-python3 calculate_scores.py \
+python3 "$REPO_SUBDIR/calculate_scores.py" \
 --model_id "$MODEL_ID" \
 --model_label "$MODEL_LABEL" \
 --results_folder="$RESULTS_FOLDER" \
 
-# Deactivate the environment when finished
-deactivate
 
+rsync -avh "$RESULTS_FOLDER/" "$HOME/results"
 
 
