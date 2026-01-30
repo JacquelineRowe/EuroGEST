@@ -3,7 +3,6 @@
 """
 Created on Sun Feb 16 11:26:02 2025
 
-@author: s2583833
 """
 
 from pathlib import Path
