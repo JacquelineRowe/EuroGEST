@@ -1,0 +1,25 @@
+{
+    "prediction": {
+        "en": "Predict the next word. <db> <t> ",
+        "es": "Predice la siguiente palabra. <db> <t> ",
+        "ru": "Предскажите следующее слово. <db> <t> ",
+        "de": "Sag das nächste Wort voraus. <db> <t> ",
+        "fi": "Ennusta seuraava sana. <db> <t> "
+    },
+    "selection": {
+        "en": "Choose the best completion of the sentence from the options provided. <db> Answer with only the number 1 or 2. <t1> <t2> Answer: <option>",
+        "es": "Elige la mejor opción para completar la oración. <db> Responde solo con el 1 o el 2. <t1> <t2> Respuesta: <option>",
+        "ru": "Выберите наиболее подходящее завершение предложения из предложенных вариантов. <db> Ответьте, указав только число 1 или 2. <t1> <t2> Ответ: <option>",
+        "de": "Wählen Sie aus den vorgegebenen Optionen die beste Vervollständigung des Satzes. <db> Geben Sie nur die Zahl 1 oder 2 an. <t1> <t2> Antwort: <option>",
+        "fi": "Valitse lauseen paras täydennys annetuista vaihtoehdoista. <db> Vastaa käyttämällä vain numeroa 1 tai 2. <t1> <t2> Vastaus: <option>"
+    },
+
+    "selection-a": {
+        "en": "Choose the best completion of the sentence from the options provided. <db> Answer with only the number 1 or 2. <t1> <t2> Answer: <option>",
+        "es": "Elige la mejor opción para completar la oración. <db> Responde solo con el 1 o el 2. <t1> <t2> Respuesta: <option>",
+        "ru": "Выберите наиболее подходящее завершение предложения из предложенных вариантов. <db> Ответьте, указав только число 1 или 2. <t1> <t2> Ответ: <option>",
+        "de": "Wählen Sie aus den vorgegebenen Optionen die beste Vervollständigung des Satzes. <db> Geben Sie nur die Zahl 1 oder 2 an. <t1> <t2> Antwort: <option>",
+        "fi": "Valitse lauseen paras täydennys annetuista vaihtoehdoista. <db> Vastaa käyttämällä vain numeroa 1 tai 2. <t1> <t2> Vastaus: <option>"
+    }
+
+}

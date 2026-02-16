@@ -1,0 +1,61 @@
+import torch
+
+def tokenise(text, tokenizer, device):
+
+    inputs = tokenizer(text, return_tensors="pt").to(device)
+    # collect however many tokens were evaluated 
+    num_tokens = inputs["input_ids"].shape[1]
+    readable_tokens = tokenizer.convert_ids_to_tokens(inputs["input_ids"][0])
+
+    return inputs, num_tokens, readable_tokens
+
+def get_sequence_log_probs(input_ids, model, device, start_index=0):
+
+    with torch.no_grad():
+        logits = model(input_ids).logits # Shape: [batch, seq_len, vocab_size]
+
+    # Shift logits and targets so we predict the next token
+    # Logits for tokens 0 to N-1 predict tokens 1 to N
+    shift_logits = logits[..., start_index:-1, :].contiguous()
+    shift_labels = input_ids[..., start_index+1:].contiguous()
+
+    # Calculate log_softmax over vocabulary, then gather the log probs of the tokens being evaluated 
+    log_probs = torch.nn.functional.log_softmax(shift_logits, dim=-1)
+    token_log_probs = torch.gather(log_probs, index=shift_labels.unsqueeze(-1), dim=-1).squeeze(-1)
+    log_probs_list = token_log_probs[0].cpu().numpy().tolist()
+
+    if device.type == 'mps':
+        torch.mps.empty_cache()
+    
+    return log_probs_list
+
+
+def generate_new_tokens(inputs, model, tokenizer, num_tokens, device, do_sample=False, temperature=0):
+
+    output_tokens = model.generate(
+        **inputs, 
+        max_new_tokens=num_tokens, 
+        pad_token_id=tokenizer.eos_token_id,
+        do_sample=do_sample,
+        temperature=temperature
+    )
+    return tokenizer.decode(output_tokens[0][inputs["input_ids"].shape[1]:])
+
+
+def find_num_diff_idx(t_m, t_f, start):
+    '''
+    finds how many tokens in two strings of tokens differ
+    '''
+    # We find how many tokens at the end are identica
+    back_idx = 1
+    max_back = min(len(t_m) - start, len(t_f) - start)
+    while back_idx < max_back and t_m[-back_idx] == t_f[-back_idx]:
+        back_idx += 1
+
+    end_m = len(t_m) - back_idx + 1
+    end_f = len(t_f) - back_idx + 1
+
+    num_diff_m = end_m - start
+    num_diff_f = end_f - start
+
+    return num_diff_m, num_diff_f
