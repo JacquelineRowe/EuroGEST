@@ -22,3 +22,5 @@ translations/
 # results
 model_evaluation_results/
 model_evaluation_graphs/
+
+.vscode/
