@@ -7,17 +7,27 @@ pip install fire
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
 REPO_SUBDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 echo $REPO_SUBDIR
+# Create the directory using the absolute path
+mkdir -p "/writeable/job_logs"
+# Define the log file using the absolute path
+LOG_FILE="/writeable/job_logs/eval_$(date +%Y%m%d_%H%M%S).log"
+# Redirect output
+exec > >(tee -a "$LOG_FILE") 2>&1
+echo "Log started: $(date)"
+echo "Log file is located at: $LOG_FILE"
+
+cd ..
 
 # change HF Home if needed
 # export $HF_HOME = "/writeable/.cache/huggingface"
 
-DEFAULT_MODEL="utter-project/EuroLLM-1.7B-Instruct"
-DEFAULT_LABEL="EURO_LLM_1.7B_I"
-DEFAULT_SAMPLE=10
-DEFAULT_EVAL_LANG="Russian,Spanish,German" # the languages for evaluation. 'all' or a comma separated list e.g. "English,Spanish,Russian"
+DEFAULT_MODEL="utter-project/EuroLLM-9B-Instruct"
+DEFAULT_LABEL="EURO_LLM_9B_I"
+DEFAULT_SAMPLE=1
+DEFAULT_EVAL_LANG="Polish,Slovak,Slovenian,Ukrainian" # the languages for evaluation. 'all' or a comma separated list e.g. "English,Spanish,Russian"
 DEFAULT_SOURCE_LANG="English" # option to add source languages other than English
-DEFAULT_EXP="debiasing_multilingual" # options: "none" (regular evalution), "translation" "debiasing_english", "debiasing_multilingual"
-DEFAULT_TARGET_STEREOTYPE=4 # 'none' or numbers 1-16 for a particular stereotype
+DEFAULT_EXP="translation" # options: "none" (regular evalution), "translation" "debiasing_english", "debiasing_multilingual"
+DEFAULT_TARGET_STEREOTYPE="none" # 'none' or numbers 1-16 for a particular stereotype
 # e.g. you can specify from the command line which models / sample size to use
 # e.g. ./model_eval.sh "meta-llama/Llama-3-8B" "LLAMA_3_8B" 10 "es"
 
@@ -31,14 +41,14 @@ TARGET_STEREOTYPE=${7:-$DEFAULT_TARGET_STEREOTYPE}
 
 
 HF_DATASET_PATH="utter-project/EuroGEST"
-RESULTS_DIR="../model_evaluation_results_modular/${MODEL_LABEL}"
+RESULTS_DIR="/writeable/results/${MODEL_LABEL}"
 echo $RESULTS_DIR
 RESULTS_FOLDER="${RESULTS_DIR}/${EXP}"
 mkdir -p "$RESULTS_FOLDER"
 
 # Inform the user what is being used
 echo "------------------------------------------------"
-echo "Running aluation with:"
+echo "Running evaluation with:"
 echo "  Model ID:           $MODEL_ID"
 echo "  Sample Size:        $SAMPLE_SIZE"
 echo "  Eval Languages:     $EVAL_LANGUAGE"
@@ -94,7 +104,7 @@ if [[ "$EXP" == "translation"* ]]; then
 fi
 
 
-python3 "main.py" \
+python3 "${REPO_SUBDIR}/main.py" \
 --hf_token="$HF_TOKEN" \
 --hf_dataset_path="$HF_DATASET_PATH" \
 --model_id "$MODEL_ID" \

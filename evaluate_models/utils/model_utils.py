@@ -9,6 +9,7 @@ def tokenise(text, tokenizer, device):
 
     return inputs, num_tokens, readable_tokens
 
+
 def get_sequence_log_probs(input_ids, model, device, start_index=0):
 
     with torch.no_grad():
@@ -16,8 +17,8 @@ def get_sequence_log_probs(input_ids, model, device, start_index=0):
 
     # Shift logits and targets so we predict the next token
     # Logits for tokens 0 to N-1 predict tokens 1 to N
-    shift_logits = logits[..., start_index:-1, :].contiguous()
-    shift_labels = input_ids[..., start_index+1:].contiguous()
+    shift_logits = logits[..., :-1, :].contiguous()
+    shift_labels = input_ids[..., 1:].contiguous()
 
     # Calculate log_softmax over vocabulary, then gather the log probs of the tokens being evaluated 
     log_probs = torch.nn.functional.log_softmax(shift_logits, dim=-1)
@@ -39,7 +40,21 @@ def generate_new_tokens(inputs, model, tokenizer, num_tokens, device, do_sample=
         do_sample=do_sample,
         temperature=temperature
     )
-    return tokenizer.decode(output_tokens[0][inputs["input_ids"].shape[1]:])
+
+    # Using [0] assumes you are processing one prompt at a time
+    new_tokens = output_tokens[0][inputs["input_ids"].shape[1]:]
+    
+    # 2. Decode to string
+    decoded = tokenizer.decode(new_tokens, skip_special_tokens=True)
+    
+    # 3. Safety Check: If 'decoded' is somehow a list, join it.
+    if isinstance(decoded, list):
+        return " ".join(decoded)
+
+    # 4. Remove newlines, tabs, and commas
+    sanitized = decoded.replace("\n", " ").replace("\r", " ").replace("\t", " ").replace(",", " ")
+    
+    return " ".join(sanitized.split())
 
 
 def find_num_diff_idx(t_m, t_f, start):

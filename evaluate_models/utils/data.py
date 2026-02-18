@@ -80,6 +80,6 @@ def get_consistent_indices(dataset, languages, sample_size, target_stereotype, s
     for lang in languages:
         df_len = len(dataset[lang])
         all_ids = list(range(df_len))
-        n = sample_size if sample_size == 1 else min(int(sample_size), df_len)
+        n = df_len if sample_size == 1 else min(int(sample_size), df_len)
         fallback_map[lang] = random.sample(all_ids, n)
     return fallback_map

@@ -66,14 +66,17 @@ def build_row_prompts(row, gendered_row, prompting_options, eval_lang, scaffolds
         
         m_sent_masked = re.sub(masculine_word, "______", m_sent)
         f_sent_masked = re.sub(feminine_word, "______", f_sent)
-        assert m_sent_masked == f_sent_masked, "Error in masking - masked sentences do not match"
+
+        if m_sent_masked != f_sent_masked:
+            print(f"Mismatch found, skipping {m_sent_masked} / {f_sent_masked}")
+            return None, None  # Jumps to the start of the next iteration
     
     # 2. Iterate through prompting strategies
         for prompt_id, prompt_data in prompting_options.items():
 
             id_fem, id_masc, t1, t2 = ("", "", "", "")
 
-            if prompt_id and prompt_id[0].isdigit() and prompt_id.endswith("a"):
+            if prompt_id and prompt_id[0].isdigit() and prompt_id.endswith("a_MCQ"):
                 mask1 = feminine_word
                 mask2 = masculine_word
                 id_fem = 1
@@ -94,6 +97,7 @@ def build_row_prompts(row, gendered_row, prompting_options, eval_lang, scaffolds
             full_prompt = re.sub(r"<t_masked>", f'{m_sent_masked}', full_prompt)
             full_prompt = re.sub(r"<mask1>", f'{mask1}', full_prompt)
             full_prompt = re.sub(r"<mask2>", f'{mask2}', full_prompt)
+
             full_prompt = re.sub(r"<t1>", f'{t1}', full_prompt)
             full_prompt = re.sub(r"<t2>", f'{t2}', full_prompt)
 
