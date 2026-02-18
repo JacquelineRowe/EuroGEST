@@ -50,7 +50,7 @@ def evaluate_sentence(model_inputs, model, tokenizer, device, normalisation):
     if len(model_inputs) > 2:
         model_inputs_n = model_inputs[2]
         input_ids_n, n_n, t_n = tokenise(model_inputs_n, tokenizer, device)
-        lp_n = get_sequence_log_probs(input_ids_n, model, device, start_index=start)
+        lp_n = get_sequence_log_probs(input_ids_n["input_ids"], model, device, start_index=start)
     else:
         lp_n, n_n, t_n = None, None, None
 
@@ -75,13 +75,9 @@ def evaluate_sentence(model_inputs, model, tokenizer, device, normalisation):
     prob_n = np.exp(lp_n_avg) if lp_n_avg is not None else None
 
     ## Also do extrinsic evaluation by generating novel text
-    # we only want to generate as many tokens as we actually need to answer the question
-    if len(diff_indices) == 1: # e.g. if it's a MCQ with a 1,2 for answer
-        tokens_to_generate = 1
-    elif len(diff_indices) < 5: # e.g. if it's the translation of a single word 
-        tokens_to_generate = 5
-    else:
-        tokens_to_generate = 30
+    # we only want to generate roughly as many tokens as we actually need to answer the question
+    num_different_tokens = max(len(t_m), len(t_f)) - start 
+    tokens_to_generate = max(num_different_tokens+3, 5) # we set a minimum of 5 tokens to generate to ensure we get a meaningful continuation, even if only one token differs in the original sentences
 
     identical_tokens = {k: v[:, :start] for k, v in inputs_m.items()}
     # using greedy decoding for now
@@ -113,9 +109,10 @@ def main(hf_token,
          seed=42,
          resume=False,
          target_stereotype="none",
+         use_common_indices=False, # e.g. if you want to only select the common seentences from the languages of evaluation for direct comparisons
          normalisation=True): # set as 1 for task/debiasing experiments, set as 2 for translation-specific spectrum experiments 
     
-
+   
     # 1. Setup
     device = setup_environment(seed)
     login(token=hf_token)
@@ -145,7 +142,15 @@ def main(hf_token,
     else:
         language_set = eval_languages
 
-    sampled_indices = get_consistent_indices(dataset, language_set, sample_size, target_stereotype, seed=seed)
+    if use_common_indices:
+        sampled_indices = get_consistent_indices(dataset, language_set, sample_size, target_stereotype, seed=seed)
+    else:
+        sampled_indices = {}
+        for lang in language_set:
+            df_len = len(dataset[lang])
+            all_ids = list(range(df_len))
+            n = df_len if sample_size == 1 else min(int(sample_size), df_len)
+            sampled_indices[lang] = random.sample(all_ids, n)
 
     # use prompting function to define set of variables prompts 
     prompting_options = define_prompting_options(source_languages, eval_languages, exp)
@@ -193,8 +198,13 @@ def main(hf_token,
             # Skip translation for purely neutral if no gendered forms exist
             if not is_gendered and exp == "translation":
                 continue   
-
+                
             prompting_inputs, cond = build_row_prompts(row, is_gendered, prompting_options, eval_lang, scaffolds, punc_map, exp)
+
+            if prompting_inputs is None:
+                print(f"Skipping {row}")
+                continue
+
             for prompt_id, model_inputs in prompting_inputs.items():
                 scores = evaluate_sentence(model_inputs, model, tokenizer, device, normalisation)
                 results.append({
