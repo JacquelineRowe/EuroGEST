@@ -4,6 +4,7 @@ from utils import (
     load_schema_configs)
 from itertools import zip_longest
 
+SYSTEM_PROMPT = "<|im_start|> system\nYou are EuroLLM --- an AI assistant specialized in European languages that provides safe, educational and helpful answers.<|im_end|>"
 
 def define_prompting_options(source_languages, eval_languages, exp):
     
@@ -106,6 +107,7 @@ def build_row_prompts(row, gendered_row, prompting_options, eval_lang, scaffolds
 
             full_prompt = re.sub(r"<target1>", f'{t1}', full_prompt)
             full_prompt = re.sub(r"<target2>", f'{t2}', full_prompt)
+            full_prompt = re.sub(r"<system_prompt>", SYSTEM_PROMPT, full_prompt)
 
             full_prompt_m = re.sub(r"<target>", f'{m_sent}.', full_prompt)
             full_prompt_f = re.sub(r"<target>", f'{f_sent}.', full_prompt)
@@ -151,6 +153,7 @@ def build_row_prompts(row, gendered_row, prompting_options, eval_lang, scaffolds
             
             full_prompt = re.sub(r"<target1>", f'{t1}.', prompt_data)
             full_prompt = re.sub(r"<target2>", f'{t2}.', full_prompt)
+            full_prompt = re.sub(r"<system_prompt>", SYSTEM_PROMPT, full_prompt)
 
             full_prompt_m = re.sub(r"<target>", f'{m_sent}.', full_prompt)
             full_prompt_f = re.sub(r"<target>", f'{f_sent}.', full_prompt)

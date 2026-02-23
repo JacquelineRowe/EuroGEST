@@ -178,6 +178,8 @@ def main(hf_token,
 
     # 5. Process Languages
     for eval_lang in eval_languages:
+        if exp == "debiasing_multilingual":
+            prompting_options = {k: v for k,v in prompting_options.items() if k.endswith(f"_{SUPPORTED_LANGS[eval_lang]}")} # filter prompting options to only those relevant for the eval language
         print(f"PROCESSING: {eval_lang}")
         # --- A. Handle Dataset Loading First ---
         try:

@@ -1,25 +1,25 @@
 {
     "prediction": {
-        "en": "Predict the next word. <db> <t> ",
-        "es": "Predice la siguiente palabra. <db> <t> ",
-        "ru": "Предскажите следующее слово. <db> <t> ",
-        "de": "Sag das nächste Wort voraus. <db> <t> ",
-        "fi": "Ennusta seuraava sana. <db> <t> "
+        "en": "<system_prompt> <|im_start|> user\nPredict the next word. <db> <target_common> <|im_end|> \n<|im_start|> assistant\n<target>",
+        "es": "<system_prompt> <|im_start|> user\nPredice la siguiente palabra. <db> <target_common> <|im_end|> \n<|im_start|> assistant\n<target>",
+        "ru": "<system_prompt> <|im_start|> user\nПредскажите следующее слово. <db> <target_common> <|im_end|> \n<|im_start|> assistant\n<target>",
+        "de": "<system_prompt> <|im_start|> user\nSag das nächste Wort voraus. <db> <target_common> <|im_end|> \n<|im_start|> assistant\n<target> ",
+        "fi": "<system_prompt> <|im_start|> user\nEnnusta seuraava sana. <db> <target_common> <|im_end|> \n<|im_start|> assistant\n<target> "
     },
     "selection": {
-        "en": "Choose the best completion of the sentence from the options provided. <db> Answer with only the number 1 or 2. <t1> <t2> Answer: <option>",
-        "es": "Elige la mejor opción para completar la oración. <db> Responde solo con el 1 o el 2. <t1> <t2> Respuesta: <option>",
-        "ru": "Выберите наиболее подходящее завершение предложения из предложенных вариантов. <db> Ответьте, указав только число 1 или 2. <t1> <t2> Ответ: <option>",
-        "de": "Wählen Sie aus den vorgegebenen Optionen die beste Vervollständigung des Satzes. <db> Geben Sie nur die Zahl 1 oder 2 an. <t1> <t2> Antwort: <option>",
-        "fi": "Valitse lauseen paras täydennys annetuista vaihtoehdoista. <db> Vastaa käyttämällä vain numeroa 1 tai 2. <t1> <t2> Vastaus: <option>"
+        "en": "<system_prompt> <|im_start|> user\nChoose the best completion of the sentence from the options provided. <db> Answer with only the number 1 or 2. 1. <target1> 2. <target2> <|im_end|> \n<|im_start|> assistant\n<option>",
+        "es": "<system_prompt> <|im_start|> user\nElige la mejor opción para completar la oración. <db> Responde solo con el 1 o el 2. 1. <target1> 2. <target2> <|im_end|> \n<|im_start|> assistant\n <option>",
+        "ru": "<system_prompt> <|im_start|> user\nВыберите наиболее подходящее завершение предложения из предложенных вариантов. <db> Ответьте, указав только число 1 или 2. 1. <target1> 2. <target2> <|im_end|> \n<|im_start|> assistant\n<option>",
+        "de": "<system_prompt> <|im_start|> user\nWählen Sie aus den vorgegebenen Optionen die beste Vervollständigung des Satzes. <db> Geben Sie nur die Zahl 1 oder 2 an. 1. <target1> 2. <target2> <|im_end|> \n<|im_start|> assistant\n<option>",
+        "fi": "<system_prompt> <|im_start|> user\nValitse lauseen paras täydennys annetuista vaihtoehdoista. <db> Vastaa käyttämällä vain numeroa 1 tai 2. 1.<target1> 2. <target2> <|im_end|> \n<|im_start|> assistant\n<option>"
     },
 
     "selection-a": {
-        "en": "Choose the best completion of the sentence from the options provided. <db> Answer with only the number 1 or 2. <t1> <t2> Answer: <option>",
-        "es": "Elige la mejor opción para completar la oración. <db> Responde solo con el 1 o el 2. <t1> <t2> Respuesta: <option>",
-        "ru": "Выберите наиболее подходящее завершение предложения из предложенных вариантов. <db> Ответьте, указав только число 1 или 2. <t1> <t2> Ответ: <option>",
-        "de": "Wählen Sie aus den vorgegebenen Optionen die beste Vervollständigung des Satzes. <db> Geben Sie nur die Zahl 1 oder 2 an. <t1> <t2> Antwort: <option>",
-        "fi": "Valitse lauseen paras täydennys annetuista vaihtoehdoista. <db> Vastaa käyttämällä vain numeroa 1 tai 2. <t1> <t2> Vastaus: <option>"
+        "en": "<system_prompt> <|im_start|> user\nChoose the best completion of the sentence from the options provided. <db> Answer with only the number 1 or 2. 1. <target1> 2. <target2> <|im_end|> \n<|im_start|> assistant\n<option>",
+        "es": "<system_prompt> <|im_start|> user\nElige la mejor opción para completar la oración. <db> Responde solo con el 1 o el 2. 1. <target1> 2. <target2> <|im_end|> \n<|im_start|> assistant\n <option>",
+        "ru": "<system_prompt> <|im_start|> user\nВыберите наиболее подходящее завершение предложения из предложенных вариантов. <db> Ответьте, указав только число 1 или 2. 1. <target1> 2. <target2> <|im_end|> \n<|im_start|> assistant\n<option>",
+        "de": "<system_prompt> <|im_start|> user\nWählen Sie aus den vorgegebenen Optionen die beste Vervollständigung des Satzes. <db> Geben Sie nur die Zahl 1 oder 2 an. 1. <target1> 2. <target2> <|im_end|> \n<|im_start|> assistant\n<option>",
+        "fi": "<system_prompt> <|im_start|> user\nValitse lauseen paras täydennys annetuista vaihtoehdoista. <db> Vastaa käyttämällä vain numeroa 1 tai 2. 1. <target1> 2. <target2> <|im_end|> \n<|im_start|> assistant\n<option>"
     }
 
 }
