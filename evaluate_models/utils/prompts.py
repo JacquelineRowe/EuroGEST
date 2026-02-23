@@ -10,7 +10,7 @@ def define_prompting_options(source_languages, eval_languages, exp):
 
     if exp == "none":
         prompting_options["baseline"] = ""
-    elif exp == "translation":
+    elif "translation" in exp:
         prompting_languages = source_languages if isinstance(source_languages, list) else [source_languages]
         prompting_options = load_schema_configs(exp)
     else:
@@ -50,19 +50,19 @@ def build_row_prompts(row, gendered_row, prompting_options, eval_lang, scaffolds
 
     model_inputs = {}
 
-    if "translation" in eval_task:
+    masc_words = m_sent.split()
+    fem_words = f_sent.split()
+        
+    fem_word = None
+    masc_word = None
+    
+    for idx, word in enumerate(fem_words):
+        if idx < len(masc_words) and word != masc_words[idx]:
+            fem_word = word
+            masc_word = masc_words[idx]
+            break
 
-        masc_words = m_sent.split()
-        fem_words = f_sent.split()
-        
-        feminine_word = None
-        masculine_word = None
-        
-        for idx, word in enumerate(fem_words):
-            if idx < len(masc_words) and word != masc_words[idx]:
-                feminine_word = word
-                masculine_word = masc_words[idx]
-                break
+    if "translation" in eval_task:
         
         m_sent_masked = re.sub(masculine_word, "______", m_sent)
         f_sent_masked = re.sub(feminine_word, "______", f_sent)
@@ -91,18 +91,18 @@ def build_row_prompts(row, gendered_row, prompting_options, eval_lang, scaffolds
                 t1 = m_sent
                 t2 = f_sent
 
-            full_prompt = re.sub(r"<L>", eval_lang, prompt_data)
-            full_prompt = re.sub(r"<l>", SUPPORTED_LANGS[eval_lang], full_prompt)
-            full_prompt = re.sub(r"<s>", f'\'{eng_sentence}\'', full_prompt)
-            full_prompt = re.sub(r"<t_masked>", f'{m_sent_masked}', full_prompt)
+            full_prompt = re.sub(r"<target_lang>", eval_lang, prompt_data)
+            full_prompt = re.sub(r"<lang_tag>", SUPPORTED_LANGS[eval_lang], full_prompt)
+            full_prompt = re.sub(r"<source>", f'\'{eng_sentence}\'', full_prompt)
+            full_prompt = re.sub(r"<target_masked>", f'{m_sent_masked}', full_prompt)
             full_prompt = re.sub(r"<mask1>", f'{mask1}', full_prompt)
             full_prompt = re.sub(r"<mask2>", f'{mask2}', full_prompt)
 
-            full_prompt = re.sub(r"<t1>", f'{t1}', full_prompt)
-            full_prompt = re.sub(r"<t2>", f'{t2}', full_prompt)
+            full_prompt = re.sub(r"<target1>", f'{t1}', full_prompt)
+            full_prompt = re.sub(r"<target2>", f'{t2}', full_prompt)
 
-            full_prompt_m = re.sub(r"<t>", f'{m_sent}.', full_prompt)
-            full_prompt_f = re.sub(r"<t>", f'{f_sent}.', full_prompt)
+            full_prompt_m = re.sub(r"<target>", f'{m_sent}.', full_prompt)
+            full_prompt_f = re.sub(r"<target>", f'{f_sent}.', full_prompt)
 
             full_prompt_m = re.sub(r"<mask>", f'{masculine_word}', full_prompt_m)
             full_prompt_f = re.sub(r"<mask>", f'{feminine_word}', full_prompt_f)
@@ -143,11 +143,11 @@ def build_row_prompts(row, gendered_row, prompting_options, eval_lang, scaffolds
                     id_fem = 2
                     id_masc = 1
             
-            full_prompt = re.sub(r"<t1>", f'{t1}.', prompt_data)
-            full_prompt = re.sub(r"<t2>", f'{t2}.', full_prompt)
+            full_prompt = re.sub(r"<target1>", f'{t1}.', prompt_data)
+            full_prompt = re.sub(r"<target2>", f'{t2}.', full_prompt)
 
-            full_prompt_m = re.sub(r"<t>", f'{m_sent}.', full_prompt)
-            full_prompt_f = re.sub(r"<t>", f'{f_sent}.', full_prompt)
+            full_prompt_m = re.sub(r"<target>", f'{m_sent}.', full_prompt)
+            full_prompt_f = re.sub(r"<target>", f'{f_sent}.', full_prompt)
 
             if prompt_id and prompt_id.startswith("selection"):
                 full_prompt_m = re.sub(r"<option>", f'{id_masc}.', full_prompt_m)
@@ -171,7 +171,7 @@ def build_row_prompts(row, gendered_row, prompting_options, eval_lang, scaffolds
         print("="*50 + "\n")
         build_row_prompts._already_printed = True
 
-    return model_inputs, condition
+    return model_inputs, condition, masc_word, fem_word
 
 
 

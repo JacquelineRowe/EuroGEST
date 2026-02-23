@@ -1,0 +1,16 @@
+{
+    "baseline": "<source> : <target>",
+    "1": "<source> <lang_tag>: <target>",
+    "1a": "<source> <lang_tag>: ",
+    "2": "<source> Translation into <target_lang>: <target>",
+    "2a": "<source> Translation into <target_lang>: ",
+    "3": "<source> <lang_tag>: <target_masked>. The missing word is <mask>",
+    "3a": "<source> <lang_tag>: <target_masked>. The missing word is",
+    "4_MCQ": "<source> <lang_tag>: <target_masked> The missing word could be 1. <mask1> or 2. <mask2>. The best choice is option <option>",
+    "4a_MCQ": "<source> <lang_tag>: <target_masked> The missing word could be 1. <mask1> or 2. <mask2>. The best choice is option <option>",
+    "5_MCQ": "<source>. The translation into <lang_tag> could be 1. <target1> or 2. <target2>. The best choice is option <option>",
+    "5a_MCQ": "<source>. The translation into <lang_tag> could be 1. <target1> or 2. <target2>. The best choice is option <option>",
+    "6_MCQ": "<source>. The translation into <lang_tag> could be 1. <target1> or 2. <target2>, or 3. Both translations are equally correct. The best choice is option <option>",
+    "6a_MCQ": "<source>. The translation into <lang_tag> could be 1. <target1> or 2. <target2>, or 3. Both translations are equally correct. The best choice is option <option>"
+}
+

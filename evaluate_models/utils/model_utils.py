@@ -32,6 +32,10 @@ def get_sequence_log_probs(input_ids, model, device, start_index=0):
 
 
 def generate_new_tokens(inputs, model, tokenizer, num_tokens, device, do_sample=False, temperature=0):
+    # in very few cases, the gendered term is right at the start of the sentece we are testing so we can't generate completion for this 
+    if "input_ids" in inputs and inputs["input_ids"].shape[-1] == 0:
+        print("Warning: Received empty input_ids. Skipping generation.")
+        return ""
 
     output_tokens = model.generate(
         **inputs, 
