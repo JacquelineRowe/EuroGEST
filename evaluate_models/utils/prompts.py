@@ -2,6 +2,7 @@ import re
 from .setup import SUPPORTED_LANGS
 from utils import (
     load_schema_configs)
+from itertools import zip_longest
 
 
 def define_prompting_options(source_languages, eval_languages, exp):
@@ -53,19 +54,24 @@ def build_row_prompts(row, gendered_row, prompting_options, eval_lang, scaffolds
     masc_words = m_sent.split()
     fem_words = f_sent.split()
         
-    fem_word = None
-    masc_word = None
-    
-    for idx, word in enumerate(fem_words):
-        if idx < len(masc_words) and word != masc_words[idx]:
-            fem_word = word
-            masc_word = masc_words[idx]
+    feminine_word = None
+    masculine_word = None
+
+    feminine_word = None
+    masculine_word = None
+    start_index = None
+
+    # zip_longest fills the shorter list with a fillvalue (None)
+    for idx, (f_word, m_word) in enumerate(zip_longest(fem_words, masc_words, fillvalue=None)):
+        if f_word != m_word:
+            feminine_word = f_word
+            masculine_word = m_word
             break
 
     if "translation" in eval_task:
-        
-        m_sent_masked = re.sub(masculine_word, "______", m_sent)
-        f_sent_masked = re.sub(feminine_word, "______", f_sent)
+
+        m_sent_masked = re.sub(masculine_word, "_____", m_sent)
+        f_sent_masked = re.sub(feminine_word, "_____", f_sent)
 
         if m_sent_masked != f_sent_masked:
             print(f"Mismatch found, skipping {m_sent_masked} / {f_sent_masked}")
@@ -115,7 +121,7 @@ def build_row_prompts(row, gendered_row, prompting_options, eval_lang, scaffolds
 
             if full_prompt_m == full_prompt_f:
                 model_input = full_prompt_m
-                model_inputs[prompt_id] = model_input
+                model_inputs[prompt_id] = [model_input]
             else:   
                 model_input = [full_prompt_m, full_prompt_f]
                 model_inputs[prompt_id] = model_input
@@ -171,7 +177,7 @@ def build_row_prompts(row, gendered_row, prompting_options, eval_lang, scaffolds
         print("="*50 + "\n")
         build_row_prompts._already_printed = True
 
-    return model_inputs, condition, masc_word, fem_word
+    return model_inputs, condition, masculine_word, feminine_word
 
 
 

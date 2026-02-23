@@ -100,7 +100,7 @@ def evaluate_sentence(model_inputs, model, tokenizer, device, normalisation):
 
     else: # if there's only one gender-generic input to test, we only do generation 
         model_inputs_n = model_inputs[0]
-        inputs_n, n_n, t_n = tokenise(model_inputs_m, tokenizer, device)
+        inputs_n, n_n, t_n = tokenise(model_inputs_n, tokenizer, device)
         tokens_to_generate = 10
         generated_text = generate_new_tokens(inputs_n, model, tokenizer, tokens_to_generate, device, do_sample=False)
 
@@ -217,9 +217,9 @@ def main(hf_token,
                 continue
             
             # Skip translation for purely neutral if no gendered forms exist
-            if not is_gendered and exp == "translation":
+            if not is_gendered and "translation" in exp:
                 continue   
-                
+        
             prompting_inputs, cond, masc_word, fem_word = build_row_prompts(row, is_gendered, prompting_options, eval_lang, scaffolds, punc_map, exp)
 
             if prompting_inputs is None:

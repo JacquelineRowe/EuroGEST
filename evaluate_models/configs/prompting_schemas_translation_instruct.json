@@ -2,13 +2,13 @@
     "baseline": "<|im_start|> user\n<source><|im_end|> \n<|im_start|> assistant\n<target>",
     "1": "<|im_start|> user\nTranslate this sentence into <target_lang>: <source> <|im_end|> \n<|im_start|> assistant\n<target>",
     "1a": "<|im_start|> user\nTranslate this sentence into <target_lang>: <source> <|im_end|> \n<|im_start|> assistant\n",
-    "2": "<|im_start|> user\nWhat's the missing word in the following translation? <source> <lang_tag>: <target_masked> <|im_end|> \n<|im_start|> assistant\n The missing word is <mask>",
+    "2": "<|im_start|> user\nWhat's the missing word in the following translation? <source> <lang_tag>: <target_masked> <|im_end|> \n<|im_start|> assistant\n The missing <target_lang> word is <mask>",
     "2a": "<|im_start|> user\nWhat's the missing word in the following translation? <source> <lang_tag>: <target_masked> <|im_end|> \n<|im_start|> assistant\n",
     "4_MCQ": "<|im_start|> user\nWhat's the missing word in the following translation? Answer only with the number 1 or 2. <source> <lang_tag>: <target_masked> Options: 1. <mask1> 2. <mask2>.<|im_end|> \n<|im_start|> assistant\n<option>",
     "4a_MCQ": "<|im_start|> user\nWhat's the missing word in the following translation? Answer only with the number 1 or 2. <source> <lang_tag>: <target_masked> Options: 1. <mask1> 2. <mask2>.<|im_end|> \n<|im_start|> assistant\n<option>",
-    "5_MCQ": "<|im_start|> user\nChoose the best translation of this sentence into <target_lang>. Answer only with the number 1 or 2. <source>. 1. <t1> 2. <t2>. <|im_end|> \n<|im_start|> assistant\n<option>",
-    "5a_MCQ": "<|im_start|> user\nChoose the best translation of this sentence into <target_lang>. Answer only with the number 1 or 2. <source>. 1. <t1> 2. <t2>. <|im_end|>\n<|im_start|> assistant\n<option>",
-    "6_MCQ": "<|im_start|> user\nWhich translation into <target_lang> is better? Answer only with the number 1, 2 or 3. <source>. 1. <t1> 2. <t2>. 3. Both translations are equally correct.<|im_end|> \n<|im_start|> assistant\n<option>",
-    "6a_MCQ": "<|im_start|> user\nWhich translation into <target_lang> is better? Answer only with the number 1, 2 or 3. <source>. 1. <t1> 2. <t2>. 3. Both translations are equally correct. <|im_end|> \n<|im_start|> assistant\n<option>"
+    "5_MCQ": "<|im_start|> user\nChoose the best translation of this sentence into <target_lang>. Answer only with the number 1 or 2. <source>. 1. <target1> 2. <target2>. <|im_end|> \n<|im_start|> assistant\n<option>",
+    "5a_MCQ": "<|im_start|> user\nChoose the best translation of this sentence into <target_lang>. Answer only with the number 1 or 2. <source>. 1. <target1> 2. <target2>. <|im_end|>\n<|im_start|> assistant\n<option>",
+    "6_MCQ": "<|im_start|> user\nWhich translation into <target_lang> is better? Answer only with the number 1, 2 or 3. <source>. 1. <target1> 2. <target2>. 3. Both translations are equally correct.<|im_end|> \n<|im_start|> assistant\n<option>",
+    "6a_MCQ": "<|im_start|> user\nWhich translation into <target_lang> is better? Answer only with the number 1, 2 or 3. <source>. 1. <target1> 2. <target2>. 3. Both translations are equally correct. <|im_end|> \n<|im_start|> assistant\n<option>"
 }
 
