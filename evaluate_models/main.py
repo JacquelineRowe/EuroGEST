@@ -28,74 +28,95 @@ from utils import (
 
 def evaluate_sentence(model_inputs, model, tokenizer, device, normalisation):
 
-    model_inputs_m = model_inputs[0]
-    model_inputs_f = model_inputs[1]
+    if len(model_inputs) >= 2:
+        model_inputs_m = model_inputs[0]
+        model_inputs_f = model_inputs[1]
 
-    inputs_m, n_m, t_m = tokenise(model_inputs_m, tokenizer, device)
-    inputs_f, n_f, t_f = tokenise(model_inputs_f, tokenizer, device)
-    
-    # for full sentence translations, multiple tokens may differ; for a MCQ question, only the final answer tokens will differ 
-    diff_indices = [i for i in range(min(len(t_m), len(t_f))) if t_m[i] != t_f[i]]
-    # check also for cases where one sentence is actually contained in the other longr one 
-    if not diff_indices and len(t_m) != len(t_f):               
-        start = max(len(t_m), len(t_f)) - (max(len(t_m), len(t_f)) - min(len(t_m), len(t_f))) - 2 # we have to back up 2 tokens so that we calculate probs on last portion of shorter sentence as well as longer one 
-    else:
-        # Standard logic: back up one token from the first difference for context
-        start = diff_indices[0] - 1 if diff_indices else 0 # in teh standard case we start evals from point of divergence -1 
+        inputs_m, n_m, t_m = tokenise(model_inputs_m, tokenizer, device)
+        inputs_f, n_f, t_f = tokenise(model_inputs_f, tokenizer, device)
+        
+        # for full sentence translations, multiple tokens may differ; for a MCQ question, only the final answer tokens will differ 
+        diff_indices = [i for i in range(min(len(t_m), len(t_f))) if t_m[i] != t_f[i]]
+        # check also for cases where one sentence is actually contained in the other longr one 
+        if not diff_indices and len(t_m) != len(t_f):               
+            start = max(len(t_m), len(t_f)) - (max(len(t_m), len(t_f)) - min(len(t_m), len(t_f))) - 2 # we have to back up 2 tokens so that we calculate probs on last portion of shorter sentence as well as longer one 
+        else:
+            # Standard logic: back up one token from the first difference for context
+            start = diff_indices[0] - 1 if diff_indices else 0 # in teh standard case we start evals from point of divergence -1 
 
-    # get log probs of divergent portions of sequences
-    lp_m = get_sequence_log_probs(inputs_m["input_ids"], model, device, start_index=start)
-    lp_f = get_sequence_log_probs(inputs_f["input_ids"], model, device, start_index=start)
+        # get log probs of divergent portions of sequences
+        lp_m = get_sequence_log_probs(inputs_m["input_ids"], model, device, start_index=start)
+        lp_f = get_sequence_log_probs(inputs_f["input_ids"], model, device, start_index=start)
 
-    if len(model_inputs) > 2:
-        model_inputs_n = model_inputs[2]
-        input_ids_n, n_n, t_n = tokenise(model_inputs_n, tokenizer, device)
-        lp_n = get_sequence_log_probs(input_ids_n["input_ids"], model, device, start_index=start)
-    else:
-        lp_n, n_n, t_n = None, None, None
+        if len(model_inputs) > 2:
+            model_inputs_n = model_inputs[2]
+            input_ids_n, n_n, t_n = tokenise(model_inputs_n, tokenizer, device)
+            lp_n = get_sequence_log_probs(input_ids_n["input_ids"], model, device, start_index=start)
+        else:
+            lp_n, n_n, t_n = None, None, None
 
-    # sum over the log probs 
-    lp_m_sum = sum(lp_m) if isinstance(lp_m, (list, np.ndarray)) else lp_m
-    lp_f_sum = sum(lp_f) if isinstance(lp_f, (list, np.ndarray)) else lp_f 
-    lp_n_sum = sum(lp_n) if isinstance(lp_n, (list, np.ndarray)) else lp_n
+        # sum over the log probs 
+        lp_m_sum = sum(lp_m) if isinstance(lp_m, (list, np.ndarray)) else lp_m
+        lp_f_sum = sum(lp_f) if isinstance(lp_f, (list, np.ndarray)) else lp_f 
+        lp_n_sum = sum(lp_n) if isinstance(lp_n, (list, np.ndarray)) else lp_n
 
-    if n_m != n_f:
-        num_diff_m, num_diff_f = find_num_diff_idx(t_m, t_f, start)
-    else:
-        num_diff_m, num_diff_f = (1,1)
+        if n_m != n_f:
+            num_diff_m, num_diff_f = find_num_diff_idx(t_m, t_f, start)
+        else:
+            num_diff_m, num_diff_f = (1,1)
 
-    # Normalized by length of the DIFFERING part only
-    lp_m_avg = (lp_m_sum / num_diff_m) if normalisation else lp_m_sum
-    lp_f_avg = (lp_f_sum / num_diff_f) if normalisation else lp_f_sum
-    lp_n_avg = None if normalisation else lp_n_sum # TO DO: deal with gender-neutral translations in normalisation 
+        # Normalized by length of the DIFFERING part only
+        lp_m_avg = (lp_m_sum / num_diff_m) if normalisation else lp_m_sum
+        lp_f_avg = (lp_f_sum / num_diff_f) if normalisation else lp_f_sum
+        lp_n_avg = None if normalisation else lp_n_sum # TO DO: deal with gender-neutral translations in normalisation 
 
-    # convert log probs into probs
-    prob_m = np.exp(lp_m_avg)
-    prob_f = np.exp(lp_f_avg)
-    prob_n = np.exp(lp_n_avg) if lp_n_avg is not None else None
+        # convert log probs into probs
+        prob_m = np.exp(lp_m_avg)
+        prob_f = np.exp(lp_f_avg)
+        prob_n = np.exp(lp_n_avg) if lp_n_avg is not None else None
 
-    ## Also do extrinsic evaluation by generating novel text
-    # we only want to generate roughly as many tokens as we actually need to answer the question
-    num_different_tokens = max(len(t_m), len(t_f)) - start 
-    tokens_to_generate = max(num_different_tokens+3, 5) # we set a minimum of 5 tokens to generate to ensure we get a meaningful continuation, even if only one token differs in the original sentences
+        ## Also do extrinsic evaluation by generating novel text
+        # we only want to generate roughly as many tokens as we actually need to answer the question
+        num_different_tokens = max(len(t_m), len(t_f)) - start 
+        tokens_to_generate = max(num_different_tokens+3, 5) # we set a minimum of 5 tokens to generate to ensure we get a meaningful continuation, even if only one token differs in the original sentences
 
-    identical_tokens = {k: v[:, :start] for k, v in inputs_m.items()}
-    # using greedy decoding for now
-    generated_text = generate_new_tokens(identical_tokens, model, tokenizer, tokens_to_generate, device, do_sample=False)
+        identical_tokens = {k: v[:, :start] for k, v in inputs_m.items()}
+        # using greedy decoding for now
+        generated_text = generate_new_tokens(identical_tokens, model, tokenizer, tokens_to_generate, device, do_sample=False)
+
+        return {
+            "masc_tokens": t_m, 
+            "fem_tokens": t_f, 
+            "neutral_tokens": t_n,
+            "masc_log_probs_sequence": lp_m,
+            "fem_log_probs_sequence": lp_f,
+            "neutral_prob_sequence": lp_n,
+            "masc_prob": prob_m,
+            "fem_prob": prob_f,
+            "neutral_prob": prob_n,
+            "identical_tokens": t_m[:start],
+            "generated_text": generated_text
+        }
+
+    else: # if there's only one gender-generic input to test, we only do generation 
+        model_inputs_n = model_inputs[0]
+        inputs_n, n_n, t_n = tokenise(model_inputs_m, tokenizer, device)
+        tokens_to_generate = 10
+        generated_text = generate_new_tokens(inputs_n, model, tokenizer, tokens_to_generate, device, do_sample=False)
 
     return {
-        "masc_tokens": t_m, 
-        "fem_tokens": t_f, 
-        "neutral_tokens": t_n,
-        "masc_log_probs_sequence": lp_m,
-        "fem_log_probs_sequence": lp_f,
-        "neutral_prob_sequence": lp_n,
-        "masc_prob": prob_m,
-        "fem_prob": prob_f,
-        "neutral_prob": prob_n,
-        "identical_tokens": t_m[:start],
-        "generated_text": generated_text
-    }
+            "masc_tokens": None, 
+            "fem_tokens": None, 
+            "neutral_tokens": t_n,
+            "masc_log_probs_sequence": None,
+            "fem_log_probs_sequence": None,
+            "neutral_prob_sequence": None,
+            "masc_prob": None,
+            "fem_prob": None,
+            "neutral_prob": None,
+            "identical_tokens": t_n,
+            "generated_text": generated_text
+        }
 
 
 def main(hf_token, 
@@ -199,7 +220,7 @@ def main(hf_token,
             if not is_gendered and exp == "translation":
                 continue   
                 
-            prompting_inputs, cond = build_row_prompts(row, is_gendered, prompting_options, eval_lang, scaffolds, punc_map, exp)
+            prompting_inputs, cond, masc_word, fem_word = build_row_prompts(row, is_gendered, prompting_options, eval_lang, scaffolds, punc_map, exp)
 
             if prompting_inputs is None:
                 print(f"Skipping {row}")
@@ -213,6 +234,8 @@ def main(hf_token,
                     "Stereotype_ID": row['Stereotype_ID'],
                     "Condition": cond,
                     "Prompt ID": prompt_id,
+                    "masc word": masc_word,
+                    "fem word": fem_word,
                     **scores,
                 })
 
