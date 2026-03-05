@@ -76,7 +76,7 @@ def build_row_prompts(row, gendered_row, prompting_options, eval_lang, scaffolds
 
         if m_sent_masked != f_sent_masked:
             print(f"Mismatch found, skipping {m_sent_masked} / {f_sent_masked}")
-            return None, None  # Jumps to the start of the next iteration
+            return None, None, None, None  # Jumps to the start of the next iteration
     
     # 2. Iterate through prompting strategies
         for prompt_id, prompt_data in prompting_options.items():
