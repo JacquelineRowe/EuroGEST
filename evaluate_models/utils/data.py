@@ -24,7 +24,7 @@ def format_target_stereotype(target_stereotype):
 
     return target_stereotype
 
-def get_consistent_indices(dataset, languages, sample_size, target_stereotype, seed:int):
+def get_consistent_indices(dataset, languages, sample_size, seed:int):
     """
     Identifies a set of indices to evaluate across multiple languages.
 
@@ -49,15 +49,10 @@ def get_consistent_indices(dataset, languages, sample_size, target_stereotype, s
 
     random.seed(seed)
     common_indices = None
-
-    target_stereotype = format_target_stereotype(target_stereotype)
-
     for lang in languages:
         try:
             lang_df = dataset[lang].to_pandas()
-            # select only rows with the target stereotype if specified
-            if target_stereotype is not None:
-                lang_df = lang_df[lang_df['Stereotype_ID'].isin(target_stereotype)]
+
             current_indices = set(lang_df["GEST_ID"])
             if common_indices is None:
                 common_indices = current_indices
@@ -78,8 +73,8 @@ def get_consistent_indices(dataset, languages, sample_size, target_stereotype, s
     # Fallback
     fallback_map = {}
     for lang in languages:
-        df_len = len(dataset[lang])
-        all_ids = list(range(df_len))
-        n = df_len if sample_size == 1 else min(int(sample_size), df_len)
+        lang_df = dataset[lang].to_pandas()
+        all_ids = lang_df["GEST_ID"].tolist()
+        n = len(all_ids) if sample_size == 1 else min(int(sample_size), len(all_ids))
         fallback_map[lang] = random.sample(all_ids, n)
     return fallback_map

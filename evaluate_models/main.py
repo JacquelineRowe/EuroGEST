@@ -59,8 +59,6 @@ def evaluate_sentence(model_inputs, model, tokenizer, device, normalisation):
         lp_f_sum = sum(lp_f) if isinstance(lp_f, (list, np.ndarray)) else lp_f 
         lp_n_sum = sum(lp_n) if isinstance(lp_n, (list, np.ndarray)) else lp_n
 
-        if n_m != n_f:
-            num_diff_m, num_diff_f = find_num_diff_idx(t_m, t_f, start)
         else:
             num_diff_m, num_diff_f = (1,1)
 
@@ -152,18 +150,17 @@ def main(hf_token,
     language_set = eval_languages
     target_stereotype = format_target_stereotype(target_stereotype)
 
+    if target_stereotype:
+        dataset = dataset.filter(lambda x: x['Stereotype_ID'] in target_stereotype)
     if use_common_indices:
-        sampled_indices = get_consistent_indices(dataset, language_set, sample_size, target_stereotype, seed=seed)
+        sampled_indices = get_consistent_indices(dataset, language_set, sample_size, seed=seed)
     else:
         sampled_indices = {}
         for lang in language_set:
-            df_len = len(dataset[lang])
-            all_ids = list(range(df_len))
+            available_gest_ids = dataset[lang]['GEST_ID']
+            df_len = len(available_gest_ids)
             n = df_len if sample_size == 1 else min(int(sample_size), df_len)
-            sampled_indices[lang] = random.sample(all_ids, n)
-
-    # use prompting function to define set of variables prompts 
-    prompting_options = define_prompting_options(source_languages, eval_languages, exp)
+            sampled_indices[lang] = random.sample(available_gest_ids, n)
 
     # 5. Process Languages
     for eval_lang in eval_languages:
