@@ -16,12 +16,5 @@ env/
 ### hf cache ###
 .hf_cache/
 
-# translations generated with create dataset
-translations/
-
 # results
-model_evaluation_results/
-model_evaluation_graphs/
-results_outputs/
-
 .vscode/
