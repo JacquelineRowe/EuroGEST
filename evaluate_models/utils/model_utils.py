@@ -10,7 +10,7 @@ def tokenise(text, tokenizer, device):
     return inputs, num_tokens, readable_tokens
 
 
-def get_sequence_log_probs(input_ids, model, device, start_index=0):
+def get_sequence_log_probs(input_ids, model, device):
 
     with torch.no_grad():
         logits = model(input_ids).logits # Shape: [batch, seq_len, vocab_size]
@@ -59,22 +59,3 @@ def generate_new_tokens(inputs, model, tokenizer, num_tokens, device, do_sample=
     sanitized = decoded.replace("\n", " ").replace("\r", " ").replace("\t", " ").replace(",", " ")
     
     return " ".join(sanitized.split())
-
-
-def find_num_diff_idx(t_m, t_f, start):
-    '''
-    finds how many tokens in two strings of tokens differ
-    '''
-    # We find how many tokens at the end are identica
-    back_idx = 1
-    max_back = min(len(t_m) - start, len(t_f) - start)
-    while back_idx < max_back and t_m[-back_idx] == t_f[-back_idx]:
-        back_idx += 1
-
-    end_m = len(t_m) - back_idx + 1
-    end_f = len(t_f) - back_idx + 1
-
-    num_diff_m = end_m - start
-    num_diff_f = end_f - start
-
-    return num_diff_m, num_diff_f

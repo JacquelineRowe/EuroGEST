@@ -16,5 +16,6 @@ env/
 ### hf cache ###
 .hf_cache/
 
-# results
 .vscode/
+
+evaluate_models/results/
