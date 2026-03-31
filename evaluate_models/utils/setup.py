@@ -36,7 +36,7 @@ def load_scaffolds_configs():
     """
     Centralized loader for experiment configurations.
     Returns:
-        tuple: (punc_map, scaffolds, schemas)
+        tuple: (punc_map, scaffolds)
     """
     with open(_get_config_path('punc_map.json'), 'r', encoding='utf-8') as f:
         punc_map = json.load(f)
