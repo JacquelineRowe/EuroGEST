@@ -136,8 +136,8 @@ def main(hf_token,
          resume=False,
          target_stereotype="none",
          use_common_indices=False, # set to True if you want to only select the common seentences from the languages of evaluation for direct comparisons
-         normalisation=False, # normalise by number of tokens after the point at which the sentences diverge
-         measure_whole_sequences=True): # normally we just measure and normalise the portion of the sentences that differ between masc and fem  
+         normalisation=True, # normalise by number of tokens after the point at which the sentences diverge
+         measure_whole_sequences=False): # normally we just measure and normalise the portion of the sentences that differ between masc and fem  
    
     # 1. Setup
     device = setup_environment(seed)
