@@ -18,7 +18,6 @@ from utils import (
     SUPPORTED_LANGS, 
     get_consistent_indices, 
     format_target_stereotype,
-    define_prompting_options, 
     build_row_prompts,
     get_sequence_log_probs,
     find_num_diff_idx,
@@ -124,44 +123,34 @@ def main(hf_token,
          model_id, 
          sample_size, 
          eval_languages, 
-         source_languages, 
          results_folder, 
-         exp="generation", 
          seed=42,
          resume=False,
          target_stereotype="none",
-         use_common_indices=False, # e.g. if you want to only select the common seentences from the languages of evaluation for direct comparisons
-         normalisation=True): # set as 1 for task/debiasing experiments, set as 2 for translation-specific spectrum experiments 
-    
+         use_common_indices=False, # set to True if you want to only select the common seentences from the languages of evaluation for direct comparisons
+         normalisation=True): # normalise by the number of tokens that differ between masc and fem sentences. Can be disabled if needed.
    
     # 1. Setup
     device = setup_environment(seed)
     login(token=hf_token)
     os.makedirs(results_folder, exist_ok=True)
 
-    # 2. Load Configs using our new helper
+    # 2. Load Configs 
     punc_map, scaffolds = load_scaffolds_configs()
 
-    # 3. Initialize Model
+    # 3. Initialization
+    # load model, tokenizer and dataset 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
-    # Optimization: ensure padding is correct for batching if needed later
+    # ensure padding is correct for batching if needed later
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     
     model = AutoModelForCausalLM.from_pretrained(model_id).to(device).eval()
     dataset = load_dataset(hf_dataset_path)
 
-    # 4. Prepare Indices and Prompts
-    if exp == "translation":
-        try:
-            assert source_languages is not None, "Error: 'source_languages' must be specified for translation experiments."
-            if isinstance(source_languages, str) and source_languages != '':
-                language_set = eval_languages + [source_languages]
-            elif isinstance(source_languages, list):
-                language_set = eval_languages + source_languages 
-        except AssertionError as e:            print(e)
-    else:
-        language_set = eval_languages
+    # 4. Select data samples as specified by inputs (stereotype, languages, sample size)
+    language_set = eval_languages
+    target_stereotype = format_target_stereotype(target_stereotype)
 
     if use_common_indices:
         sampled_indices = get_consistent_indices(dataset, language_set, sample_size, target_stereotype, seed=seed)
@@ -216,11 +205,7 @@ def main(hf_token,
             if not is_gendered and not is_neutral:
                 continue
             
-            # Skip translation for purely neutral if no gendered forms exist
-            if not is_gendered and exp == "translation":
-                continue   
-                
-            prompting_inputs, cond, masc_word, fem_word = build_row_prompts(row, is_gendered, prompting_options, eval_lang, scaffolds, punc_map, exp)
+            prompting_inputs, cond, masc_word, fem_word = build_row_prompts(row, is_gendered, eval_lang, scaffolds, punc_map)
 
             if prompting_inputs is None:
                 print(f"Skipping {row}")
