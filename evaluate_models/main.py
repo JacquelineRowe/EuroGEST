@@ -15,6 +15,7 @@ pd.reset_option('display.max_colwidth')
 from utils import (
     setup_environment, 
     load_scaffolds_configs, 
+    load_summary_configs,
     SUPPORTED_LANGS, 
     get_consistent_indices, 
     format_target_stereotype,
@@ -133,7 +134,6 @@ def main(hf_token,
          eval_languages, 
          results_folder, 
          seed=42,
-         resume=False,
          target_stereotype="none",
          use_common_indices=False, # set to True if you want to only select the common seentences from the languages of evaluation for direct comparisons
          normalisation=True, # normalise by number of tokens after the point at which the sentences diverge
@@ -146,6 +146,7 @@ def main(hf_token,
 
     # 2. Load Configs 
     punc_map, scaffolds = load_scaffolds_configs()
+    stereotype_labels, language_test_configs = load_summary_configs()
 
     # 3. Initialization
     # load model, tokenizer and dataset 
@@ -191,15 +192,6 @@ def main(hf_token,
             continue
 
         output_path = os.path.join(results_folder, f"{eval_lang.lower()}.csv")
-        
-        # 5. Load existing ONLY if resume flag is set
-        if resume and os.path.exists(output_path):
-            existing_results = pd.read_csv(output_path)
-            print(f"Resuming: Loaded {len(existing_results)} existing rows for {eval_lang}")
-        else:
-            existing_results = pd.DataFrame()
-            if os.path.exists(output_path) and not resume:
-                print(f"Note: {output_path} exists but 'resume' is False. Overwriting.")
 
         results = []
         for _, row in tqdm(df.iterrows(), total=len(df), desc=f"Evaluating {eval_lang}"):
@@ -213,7 +205,7 @@ def main(hf_token,
             if not is_gendered and not is_neutral:
                 continue
             
-            prompting_inputs, cond, masc_word, fem_word = build_row_prompts(row, is_gendered, eval_lang, scaffolds, punc_map)
+            prompting_inputs, cond, masc_word, fem_word = build_row_prompts(row, is_gendered, eval_lang, scaffolds, punc_map, language_test_configs)
 
             if prompting_inputs is None:
                 print(f"Skipping {row}")
@@ -233,15 +225,6 @@ def main(hf_token,
                 })
 
         
-        # 6. Save Results
-        if results:
-            new_df = pd.DataFrame(results)
-            join_keys = ["GEST_ID", "Source", "Stereotype_ID", "Condition"]
-
-            if not existing_results.empty:
-                # Remove columns from existing_results that exist in new_df 
-                # (except for the join keys) to avoid _x / _y suffixes.
-                cols_to_drop = [c for c in new_df.columns if c in existing_results.columns and c not in join_keys]
                 existing_results = existing_results.drop(columns=cols_to_drop)
                 
                 final_df = existing_results.merge(new_df, on=join_keys, how="outer")

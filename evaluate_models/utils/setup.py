@@ -45,6 +45,21 @@ def load_scaffolds_configs():
         
     return punc_map, scaffolds
 
+
+def load_summary_configs():
+    """
+    Centralized loader for summary configurations.
+    Returns:
+        tuple: (stereotype_labels, language_test_configs)
+    """
+    with open(_get_config_path('stereotype_labels.json'), 'r', encoding='utf-8') as f:
+        stereotype_labels = json.load(f)
+    with open(_get_config_path('language_test_configs.json'), 'r', encoding='utf-8') as f:
+        language_test_configs = json.load(f)
+
+    return stereotype_labels, language_test_configs
+   
+
 def load_schema_configs(extension):
     with open(_get_config_path(f'prompting_schemas_{extension}.json'), 'r', encoding='utf-8') as f:
         schemas = json.load(f)

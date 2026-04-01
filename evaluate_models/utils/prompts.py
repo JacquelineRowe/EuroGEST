@@ -4,16 +4,18 @@ from utils import (
     load_schema_configs)
 
 
-def build_row_prompts(row, gendered_row, eval_lang, scaffolds, punc_map):
+def build_row_prompts(row, gendered_row, eval_lang, scaffolds, punc_map, language_test_configs):
     # 1. Prepare Sentence Variations (Gendered vs Neutral)
-    eng_sentence = row['Source']
+
     if gendered_row:
         m_sent, f_sent = row['Masculine'], row['Feminine']
         condition = "G"
     else:
         m_sent, m_sent_noun, f_sent, f_sent_noun = wrap_neutral_sentence(row['Neutral'], eval_lang, scaffolds, punc_map)
-        condition = "P"
-        if m_sent == f_sent:
+        if eval_lang in language_test_configs["language_types"]["gendered_pronouns"] and language_test_configs["use_pronouns_if_available"] == "True":
+            condition = "P"
+            pass
+        else:
             m_sent, f_sent = m_sent_noun, f_sent_noun
             condition = "N"
 
