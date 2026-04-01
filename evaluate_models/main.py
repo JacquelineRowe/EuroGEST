@@ -175,7 +175,7 @@ def main(hf_token,
             n = df_len if sample_size == 1 else min(int(sample_size), df_len)
             sampled_indices[lang] = random.sample(available_gest_ids, n)
 
-    # 5. Process Languages
+    # # 5. Process Languages
     for eval_lang in eval_languages:
         print(f"PROCESSING: {eval_lang}")
         # --- A. Handle Dataset Loading First ---
@@ -226,15 +226,15 @@ def main(hf_token,
                 })
 
         
-    #     # 6. Save Results
-    #     if results:
-    #         final_df = pd.DataFrame(results)
-    #         join_keys = ["GEST_ID", "Source", "Stereotype_ID", "Condition"]
+        # 6. Save Results
+        if results:
+            final_df = pd.DataFrame(results)
+            join_keys = ["GEST_ID", "Source", "Stereotype_ID", "Condition"]
 
-    #         # pd.set_option('display.max_colwidth', 25)
-    #         print(final_df.head())
+            # pd.set_option('display.max_colwidth', 25)
+            print(final_df.head())
 
-    #         final_df.to_csv(output_path, index=False)
+            final_df.to_csv(output_path, index=False)
 
     print("--- Running Final Scoring ---")
     # results_folder is where individual lang csvs are

@@ -2,10 +2,13 @@
 
 source .venv/bin/activate
 
-## Paths
-RESULTS_DIR="../model_evaluation_results"
-GRAPHS_DIR="../model_evaluation_graphs"
+REPO_SUBDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+echo $REPO_SUBDIR
 
+# set results dir to wherever per language results csvs are saved 
+RESULTS_DIR="${REPO_SUBDIR}/../evaluate_models/results"
+# GRAPHS_DIR="${REPO_SUBDIR}/graphs"
+GRAPHS_DIR="${REPO_SUBDIR}/graphs"
 SUBSET="all" # options "all" "EU" langs only
 SORT_BY="family" # options = 'family', 'alphabetical' (order in which languages are displayed)
 
@@ -47,7 +50,7 @@ LANGUAGES=(
 LANGUAGES_STRING=$(printf '"%s", ' "${LANGUAGES[@]}")
 LANGUAGES_STRING="[${LANGUAGES_STRING%,}]"  
 
-python3 visualise_results.py \
+python3 "${REPO_SUBDIR}/visualise_results.py" \
 --model_labels="$LABELS_STRING" \
 --languages="$LANGUAGES_STRING" \
 --results_dir="$RESULTS_DIR" \

@@ -19,3 +19,4 @@ env/
 .vscode/
 
 evaluate_models/results/
+visualise_results/graphs/

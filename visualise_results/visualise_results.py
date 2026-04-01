@@ -15,8 +15,9 @@ import seaborn as sns
 import fire
 import os
 import re
+import matplotlib.style as style 
 
-
+style.use('tableau-colorblind10')
 mpl.rcParams['font.family'] = 'Times New Roman'
 
 EURO_LLM_LANGS = {
@@ -62,45 +63,53 @@ STEREOTYPE_LABELS = {
 }
 
 def plot_stereotype_positions(df, languages, model_label, graphs_dir, sort_by):
-
     graphs_folder = os.path.join(graphs_dir, 'stereotype_positions')
     os.makedirs(graphs_folder, exist_ok=True)
     
-    if 'Unnamed: 0' in df.columns:
-        df = df.set_index('Unnamed: 0')
-
     available_langs = [l for l in languages if l in df.columns]
-    plot_data = df[available_langs]
 
-    plt.figure(figsize=(10, 6)) # Adjusted for better proportions
+    ordered_stereotype_labels = list(STEREOTYPE_LABELS.values())
+    heatmap_df = pd.DataFrame(index=ordered_stereotype_labels, columns=available_langs)
+
+    ## 3. Fill the heatmap with the ranks from the original DF
+    for lang in available_langs:
+        for rank, stereotype in df[lang].items():
+            if stereotype in heatmap_df.index:
+                # Add +1 to convert 0-15 into 1-16
+                heatmap_df.loc[stereotype, lang] = rank + 1
+
+    # Convert to float for Seaborn compatibility
+    heatmap_df = heatmap_df.astype(float)
+
+    # 3. Plotting
+    plt.figure(figsize=(10, 10)) # Vertical orientation needs more height
     
-    # center=8 ensures rank 8 is neutral; vmin/vmax keeps the scale consistent
-    ax = sns.heatmap(plot_data, 
+    # cmap='PuOr_r' will color based on the rank (0-15)
+    ax = sns.heatmap(heatmap_df, 
                      cmap='PuOr_r', 
                      square=True, 
-                     center=8, 
+                     center=7.5, 
                      vmin=1, 
                      vmax=16, 
-                     cbar_kws={'label': 'Masculine Rank (1=Most Masc)'})
+                     annot=True, # Optional: shows the rank number in the box
+                     fmt=".0f",
+                     cbar_kws={'label': 'Masculine Rank (1=Most Masculine)'})
     
     plt.xlabel('Language', fontsize=14, labelpad=10)
     plt.ylabel('Stereotype', fontsize=14, labelpad=10)
 
-    lang_codes = [EURO_LLM_LANGS[lang].upper() for lang in plot_data.columns]
+    try:
+        lang_codes = [EURO_LLM_LANGS[lang].upper() for lang in heatmap_df.columns]
+        ax.set_xticklabels(lang_codes, ha='center', fontsize=10)
+    except NameError:
+        ax.set_xticklabels(heatmap_df.columns, ha='center', fontsize=10)
     
-    ax.set_xticks(np.arange(len(lang_codes)) + 0.5)
-    ax.set_xticklabels(lang_codes, ha='center', fontsize=10)
-    
-    # Red line to separate Female stereotypes (top 7) from Male
-    plt.axhline(y=7, color='red', linewidth=2, linestyle='--')
-    
-    # Y-axis labels from the index of the DF
-    ax.set_yticks(np.arange(len(plot_data.index)) + 0.5)
-    ax.set_yticklabels(plot_data.index, rotation=0, fontsize=10)
+    # Y-axis labels are now the Stereotype names
+    ax.set_yticklabels(heatmap_df.index, rotation=0, fontsize=10)
 
     plt.tight_layout()
     
-    # Safe filename for OS
+    # Save logic
     safe_label = str(model_label).replace("/", "_")
     save_path = os.path.join(graphs_folder, f'{safe_label}_{sort_by}.png')
     plt.savefig(save_path, bbox_inches='tight', dpi=300)
@@ -169,7 +178,7 @@ def plot_stereotype_rates_per_lang(model_labels, graphs_dir, langs, dfs, subset)
             ax.tick_params(axis='y', labelsize=14)
 
             if not lang_row.empty:
-                g_s_value = lang_row['g_s score'].values[0]
+                g_s_value = lang_row['g_s_score'].values[0]
             # Plot the point
                 # X-axis: model size, Y-axis: g_s score
                 label = f'{m_name} Instruct' if is_instruct else m_name
@@ -234,19 +243,15 @@ def plot_inclinations(model_labels, graphs_dir, langs, dfs):
     # for each mdoel family, plot the inclination graph with size vairants 
     for m_family in model_family_store.keys():
         family_data = model_family_store[m_family]
-
-        # # for index, model_size in enumerate(sizes):
-        # We need to distinguish between Base and Instruct for the two subplots
         base_cols = {}
         instr_cols = {}
         
-        # Attribute labels from stereotypes 
-        # family_data.index = family_data.index.map(STEREOTYPE_LABELS)
-        all_labels = [STEREOTYPE_LABELS[i] for i in range(1,17)]
+        all_labels = [STEREOTYPE_LABELS[i] for i in range(1, 17)]
 
         for i in range(len(family_data['size'])):
             size = family_data['size'][i]
             is_instr = family_data['is instruct'][i]
+            # Ensure the data matches the 1-16 index labels
             data = family_data['df'][i]
             
             if is_instr:
@@ -254,46 +259,64 @@ def plot_inclinations(model_labels, graphs_dir, langs, dfs):
             else:
                 base_cols[size] = data
 
-        # Convert to DataFrames: Rows=Attributes, Cols=Sizes
-        df_base = pd.DataFrame(base_cols)
-        df_instr = pd.DataFrame(instr_cols)
+        # 1. Determine how many subplots we need
+        has_base = len(base_cols) > 0
+        has_instr = len(instr_cols) > 0
+        num_plots = int(has_base) + int(has_instr)
 
-        # 2. Start Plotting
-        fig, axes = plt.subplots(1, 2, figsize=(10, 8), sharey=True)
+        if num_plots == 0:
+            continue
+
+        # 2. Dynamic Subplot Creation
+        fig, axes = plt.subplots(1, num_plots, figsize=(6 * num_plots, 8), sharey=True, squeeze=False)
+        axes = axes.flatten() # Flatten so we can use index [0], [1] regardless of count
+        
+        curr_ax = 0
         cmap = 'bwr'
         vmax = 0.2
+        last_im = None
 
-        # --- Base Models Heatmap ---
-        sns.heatmap(df_base, cmap=cmap, center=0.0, vmax=vmax, ax=axes[0], 
-                    square=True, cbar=False, annot=True, fmt=".2f", annot_kws={"fontsize":9})
-        axes[0].set_title(f"{m_family} Base", fontsize=16)
-        axes[0].set_xlabel("# params (billions)", fontsize=14)
-        axes[0].axhline(y=7, color='black', linewidth=1)
-        
-        # --- Instruct Models Heatmap ---
-        im1 = sns.heatmap(df_instr, cmap=cmap, center=0.0, vmax=vmax, ax=axes[1], 
-                          square=True, cbar=False, annot=True, fmt=".2f", annot_kws={"fontsize":9})
-        axes[1].set_title(f"{m_family} Instruct", fontsize=16)
-        axes[1].set_xlabel("# params (billions)", fontsize=14)
-        axes[1].axhline(y=7, color='black', linewidth=1)
+        # --- Plot Base if exists ---
+        if has_base:
+            df_base = pd.DataFrame(base_cols).reindex(range(0, 16))
+            im = sns.heatmap(df_base, cmap=cmap, center=0.0, vmax=vmax, ax=axes[curr_ax], 
+                             square=True, cbar=False, annot=True, fmt=".2f", annot_kws={"fontsize":9})
+            axes[curr_ax].set_title(f"{m_family} Base", fontsize=16)
+            axes[curr_ax].set_xlabel("# params (billions)", fontsize=14)
+            axes[curr_ax].axhline(y=7, color='black', linewidth=2, linestyle='--')
+            axes[curr_ax].set_yticklabels(all_labels, rotation=0, fontsize=12)
+            last_im = im
+            curr_ax += 1
 
-        # 3. Aesthetics & Labels
-        # Set Y-labels (attributes) only on the first plot
-        axes[0].set_yticklabels(all_labels, rotation=0, fontsize=12)
-        axes[1].tick_params(axis='y', which='both', length=0)
-        
-        # Add Colorbar
+        # --- Plot Instruct if exists ---
+        if has_instr:
+            df_instr = pd.DataFrame(instr_cols).reindex(range(0, 16))
+            im = sns.heatmap(df_instr, cmap=cmap, center=0.0, vmax=vmax, ax=axes[curr_ax], 
+                             square=True, cbar=False, annot=True, fmt=".2f", annot_kws={"fontsize":9})
+            axes[curr_ax].set_title(f"{m_family} Instruct", fontsize=16)
+            axes[curr_ax].set_xlabel("# params (billions)", fontsize=14)
+            axes[curr_ax].axhline(y=7, color='black', linewidth=2, linestyle='--')
+            
+            # If this is the second plot, hide y-ticks to prevent overlap
+            if curr_ax > 0:
+                axes[curr_ax].tick_params(axis='y', which='both', length=0)
+            else:
+                axes[curr_ax].set_yticklabels(all_labels, rotation=0, fontsize=12)
+            
+            last_im = im
+
+        # 3. Add Colorbar relative to the existing axes
+        fig.tight_layout(rect=[0, 0, 0.9, 1]) # Make room for colorbar on the right
         cbar_ax = fig.add_axes([0.92, 0.15, 0.02, 0.7]) 
-        cbar = fig.colorbar(im1.collections[0], cax=cbar_ax)  
-        cbar.outline.set_visible(False)
+        fig.colorbar(last_im.get_children()[0], cax=cbar_ax)
 
-        save_path = os.path.join(graphs_folder, f"{m_family}.png")
-        plt.savefig(f"{graphs_folder}/{m_family}_heatmap.png", bbox_inches="tight", dpi=300)
+        save_path = f"{graphs_folder}/{m_family}_heatmap.png"
+        plt.savefig(save_path, bbox_inches="tight", dpi=300)
+        print(f"Saved inclination heatmap: {save_path}")
         plt.close()
     
     
     # print(model_family_store)
-
 
 def main(model_labels,
          languages,
@@ -321,7 +344,7 @@ def main(model_labels,
 
     for model_label in model_labels:
         # find results for that model 
-        results_folder = os.path.join(results_dir, model_label)
+        results_folder = os.path.join(results_dir, model_label, "summary_metrics")
         if not os.path.isdir(results_folder):
             print(f"Warning: Folder not found: {results_folder}")
             continue
@@ -333,9 +356,9 @@ def main(model_labels,
             return None
         
         try:
-            path_rates = get_safe_path('stereotype_rates_per_lang.csv')
-            path_rankings = get_safe_path('stereotype_rankings_per_lang.csv')
-            path_inclination = get_safe_path('inclinations_per_lang.csv')
+            path_rates = get_safe_path('gs_scores.csv')
+            path_rankings = get_safe_path('stereotype_rankings.csv')
+            path_inclination = get_safe_path('inclinations.csv')
 
             if all([path_rates, path_rankings, path_inclination]):
                 gs_scores[model_label] = pd.read_csv(path_rates)
@@ -350,9 +373,9 @@ def main(model_labels,
         except Exception as e:
             print(f"An error occurred while processing {model_label}: {e}")
 
-        # plot_stereotype_positions(stereotype_rankings, final_langs, model_label, graphs_folder, sort_by)
+        plot_stereotype_positions(stereotype_rankings, final_langs, model_label, graphs_folder, sort_by)
 
-    # plot_stereotype_rates_per_lang(model_labels, graphs_folder, final_langs, gs_scores, subset)
+    plot_stereotype_rates_per_lang(model_labels, graphs_folder, final_langs, gs_scores, subset)
     plot_inclinations(model_labels, graphs_folder, final_langs, inclination_scores)
                         
 if __name__ == "__main__":
