@@ -2,3 +2,4 @@ from .setup import setup_environment, load_scaffolds_configs, load_summary_confi
 from .data import get_consistent_indices, format_target_stereotype
 from .prompts import build_row_prompts, wrap_neutral_sentence
 from .model_utils import get_sequence_log_probs, generate_new_tokens, tokenise
+from .scoring import run_full_scoring_pipeline

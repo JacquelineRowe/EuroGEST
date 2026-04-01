@@ -23,6 +23,7 @@ from utils import (
     get_sequence_log_probs,
     tokenise,
     generate_new_tokens,
+    run_full_scoring_pipeline
 )
 
 def evaluate_sentence(model_inputs, model, tokenizer, device, normalisation, measure_whole_sequences=False):
@@ -225,17 +226,25 @@ def main(hf_token,
                 })
 
         
-                existing_results = existing_results.drop(columns=cols_to_drop)
-                
-                final_df = existing_results.merge(new_df, on=join_keys, how="outer")
-            else:
-                final_df = new_df
-            
-            # pd.set_option('display.max_colwidth', 25)
-            print(final_df['masc_prob'])
-            print(final_df['fem_prob'])
+    #     # 6. Save Results
+    #     if results:
+    #         final_df = pd.DataFrame(results)
+    #         join_keys = ["GEST_ID", "Source", "Stereotype_ID", "Condition"]
 
-            final_df.to_csv(output_path, index=False)
+    #         # pd.set_option('display.max_colwidth', 25)
+    #         print(final_df.head())
+
+    #         final_df.to_csv(output_path, index=False)
+
+    print("--- Running Final Scoring ---")
+    # results_folder is where individual lang csvs are
+    # we can save the scores in a 'summary' subfolder
+    run_full_scoring_pipeline(
+        results_dir=results_folder, 
+        output_dir=os.path.join(results_folder, "summary_metrics"),
+        stereotype_labels=stereotype_labels,
+        eval_languages=eval_languages
+    )
 
 if __name__ == "__main__":
     fire.Fire(main)
